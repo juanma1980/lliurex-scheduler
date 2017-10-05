@@ -1,0 +1,6 @@
+[SETUP]
+type=python
+path=ServerScheduler.py
+class=ServerScheduler
+[METHODS]
+get_tasks=adm,admins
