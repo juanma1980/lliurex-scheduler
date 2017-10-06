@@ -15,15 +15,13 @@ import time
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject, GLib, PangoCairo, Pango
 
 from clientScheduler import clientScheduler as scheduler
-
+from cronParser import cronParser
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 import gettext
 gettext.textdomain('lliurex-up')
 _ = gettext.gettext
-
-
 
 #BASE_DIR="/usr/share/taskScheduler/"
 BASE_DIR="../share/taskScheduler/"
@@ -50,7 +48,424 @@ class TaskDetails:
 			widget.set_width_chars(2)
 			widget.set_max_width_chars(3)
 
-	def render(self,gtkGrid,btn_apply=True):
+	def _load_interval_data(self,widget=None):
+		position=self.cmb_interval.get_active()
+		self.cmb_interval.remove_all()
+		date=self.cmb_dates.get_active_text()
+		total=24
+		if date==_("day(s)"):
+			total=7
+			self.day_box.set_sensitive(False)
+			self.month_box.set_sensitive(True)
+			self.hour_box.set_sensitive(True)
+			self._activate_days(False)
+		elif date==_("hour(s)"):
+			total=24
+			self.day_box.set_sensitive(True)
+			self.month_box.set_sensitive(True)
+			self.hour_box.set_sensitive(False)
+			self._activate_days(True)
+		elif date==_("week(s)"):
+			total=4
+			self.day_box.set_sensitive(False)
+			self.month_box.set_sensitive(True)
+			self.hour_box.set_sensitive(True)
+			self._activate_days(False)
+		elif date==_("month(s)"):
+			total=12
+			self.day_box.set_sensitive(True)
+			self.month_box.set_sensitive(False)
+			self.hour_box.set_sensitive(True)
+			self._activate_days(True)
+		for i in range(total):
+			self.cmb_interval.append_text(str(i+1))
+		if position>=total:
+			position=total-1
+		elif position<0:
+			position=0
+		print("POSITION: "+str(position))
+		self.cmb_interval.set_active(position)
+
+	def _load_date_data(self):
+		date=[_("hour(s)"),_("day(s)"),_("week(s)"),_("month(s)")]
+		for i in date:
+			self.cmb_dates.append_text(i)
+		self.cmb_dates.set_active(0)
+	
+	def _load_special_date_data(self):
+		date=[_("Last month day"),_("First month day")]
+		for i in date:
+			self.cmb_special_dates.append_text(i)
+		self.cmb_special_dates.set_active(0)
+
+	def _load_hours_data(self):
+		for i in range(24):
+			self.cmb_hours.append_text(str(i))
+		self.cmb_hours.set_active(0)
+
+	def _load_minutes_data(self):
+		for i in range(0,60,5):
+			self.cmb_minutes.append_text(str(i))
+		self.cmb_minutes.set_active(0)
+
+	def _load_months_data(self):
+		self.cmb_months.append_text("Every month")
+		for i in range(12):
+			self.cmb_months.append_text(str(i+1))
+		self.cmb_months.set_active(0)
+	
+	def _load_days_data(self,max=31):
+		self.cmb_days.append_text("Everyday")
+		for i in range(max):
+			self.cmb_days.append_text(str(i+1))
+		self.cmb_days.set_active(0)
+
+	def render_basic(self,gtkGrid,btn_apply=True):
+		self.chk_monday=Gtk.ToggleButton(_("Monday"))
+		self.chk_thursday=Gtk.ToggleButton(_("Thursday"))
+		self.chk_wednesday=Gtk.ToggleButton(_("Wednesday"))
+		self.chk_tuesday=Gtk.ToggleButton(_("Tuesday"))
+		self.chk_friday=Gtk.ToggleButton(_("Friday"))
+		self.chk_saturday=Gtk.ToggleButton(_("Saturday"))
+		self.chk_sunday=Gtk.ToggleButton(_("Sunday"))
+		self.chk_daily=Gtk.CheckButton("Daily")
+		self.chk_hourly=Gtk.CheckButton("Hourly")
+		self.chk_weekly=Gtk.CheckButton("Weekly")
+		self.chk_interval=Gtk.CheckButton("Interval")
+		self.cmb_interval=Gtk.ComboBoxText()
+		self.cmb_dates=Gtk.ComboBoxText()
+		self._load_interval_data()
+		self._load_date_data()
+		self.chk_special_dates=Gtk.CheckButton("Special cases")
+		self.cmb_special_dates=Gtk.ComboBoxText()
+		self._load_special_date_data()
+		self.chk_fixed_date=Gtk.CheckButton("Fixed date")
+		self.day_box=Gtk.Box()
+		self.day_box.set_homogeneous(True)
+		self.cmb_days=Gtk.ComboBoxText()
+		self.day_box.add(Gtk.Label(_("Day")))
+		self.day_box.add(self.cmb_days)
+		self.month_box=Gtk.Box()
+		self.month_box.set_homogeneous(True)
+		self.cmb_months=Gtk.ComboBoxText()
+		self.month_box.add(Gtk.Label(_("Month")))
+		self.month_box.add(self.cmb_months)
+		self.hour_box=Gtk.Box()
+		self.hour_box.set_homogeneous(True)
+		self.cmb_hours=Gtk.ComboBoxText()
+		self.hour_box.add(Gtk.Label(_("Hour")))
+		self.hour_box.add(self.cmb_hours)
+		self.minute_box=Gtk.Box()
+		self.minute_box.set_homogeneous(True)
+		self.cmb_minutes=Gtk.ComboBoxText()
+		self.minute_box.add(Gtk.Label(_("Minutes")))
+		self.minute_box.add(self.cmb_minutes)
+		self._load_minutes_data()
+		self._load_hours_data()
+		self._load_days_data()
+		self._load_months_data()
+
+		self.lbl_info=Gtk.Label("")
+		self.lbl_info.set_margin_bottom(12)
+		self.lbl_info.set_opacity(0.6)
+		gtkGrid.attach(self.lbl_info,0,0,8,2)
+		label=Gtk.Label(_("Days of week"))
+		gtkGrid.attach(label,0,2,2,1)
+		gtkGrid.attach_next_to(self.chk_monday,label,Gtk.PositionType.BOTTOM,1,1)
+		gtkGrid.attach_next_to(self.chk_tuesday,self.chk_monday,Gtk.PositionType.BOTTOM,1,1)
+		gtkGrid.attach_next_to(self.chk_wednesday,self.chk_tuesday,Gtk.PositionType.BOTTOM,1,1)
+		gtkGrid.attach_next_to(self.chk_thursday,self.chk_wednesday,Gtk.PositionType.BOTTOM,1,1)
+		gtkGrid.attach_next_to(self.chk_friday,self.chk_thursday,Gtk.PositionType.BOTTOM,1,1)
+		gtkGrid.attach_next_to(self.chk_saturday,self.chk_monday,Gtk.PositionType.RIGHT,1,1)
+		gtkGrid.attach_next_to(self.chk_sunday,self.chk_saturday,Gtk.PositionType.BOTTOM,1,1)
+		label=Gtk.Label(_("Time & date"))
+		gtkGrid.attach(label,2,2,2,1)
+		gtkGrid.attach_next_to(self.hour_box,label,Gtk.PositionType.BOTTOM,1,1)
+		gtkGrid.attach_next_to(self.minute_box,self.hour_box,Gtk.PositionType.BOTTOM,1,1)
+		gtkGrid.attach_next_to(self.chk_fixed_date,self.minute_box,Gtk.PositionType.BOTTOM,1,1)
+		gtkGrid.attach_next_to(self.month_box,self.chk_fixed_date,Gtk.PositionType.BOTTOM,1,1)
+		gtkGrid.attach_next_to(self.day_box,self.month_box,Gtk.PositionType.BOTTOM,1,1)
+		label=Gtk.Label(_("Time intervals"))
+		gtkGrid.attach(label,4,2,2,1)
+		gtkGrid.attach_next_to(self.chk_interval,label,Gtk.PositionType.BOTTOM,1,1)
+		self.interval_box=Gtk.Box()
+		self.interval_box.add(Gtk.Label(_("Each")))
+		self.interval_box.add(self.cmb_interval)
+		self.interval_box.add(self.cmb_dates)
+		gtkGrid.attach_next_to(self.interval_box,self.chk_interval,Gtk.PositionType.BOTTOM,1,1)
+		gtkGrid.attach_next_to(self.chk_special_dates,self.interval_box,Gtk.PositionType.BOTTOM,2,1)
+		gtkGrid.attach_next_to(self.cmb_special_dates,self.chk_special_dates,Gtk.PositionType.BOTTOM,1,1)
+		if btn_apply:
+			self.btn_apply=Gtk.Button(stock=Gtk.STOCK_APPLY)
+			gtkGrid.attach(self.btn_apply,5,15,1,1)
+		#Signals
+		gtkGrid.connect("event",self._parse_scheduled)
+		self.chk_fixed_date.connect("toggled",self._chk_fixed_dates_status)
+		self.chk_monday.connect("toggled",self._enable_fixed_dates)
+		self.chk_thursday.connect("toggled",self._enable_fixed_dates)
+		self.chk_wednesday.connect("toggled",self._enable_fixed_dates)
+		self.chk_tuesday.connect("toggled",self._enable_fixed_dates)
+		self.chk_friday.connect("toggled",self._enable_fixed_dates)
+		self.chk_saturday.connect("toggled",self._enable_fixed_dates)
+		self.chk_sunday.connect("toggled",self._enable_fixed_dates)
+		self.chk_interval.connect("toggled",self._chk_interval_status)
+		self.chk_special_dates.connect("toggled",self._chk_special_dates_status)
+		self.cmb_dates.connect("changed",self._load_interval_data)
+		self.cmb_minutes.connect("changed",self._parse_scheduled)
+		self.cmb_hours.connect("changed",self._parse_scheduled)
+		self.cmb_months.connect("changed",self._parse_scheduled)
+		self.cmb_days.connect("changed",self._parse_scheduled)
+		self.cmb_interval.connect("changed",self._parse_scheduled)
+		#Initial control status
+		self.interval_box.set_sensitive(False)
+		self.cmb_special_dates.set_sensitive(False)
+		self.day_box.set_sensitive(False)
+		self.month_box.set_sensitive(False)
+		return gtkGrid
+
+	def _chk_interval_status(self,widget):
+		if self.chk_interval.get_active():
+			self.interval_box.set_sensitive(True)
+			self.chk_special_dates.set_sensitive(True)
+			self.hour_box.set_sensitive(False)
+			self.month_box.set_sensitive(True)
+			self.day_box.set_sensitive(not self._get_days_active())
+		else:
+			self.interval_box.set_sensitive(False)
+			if not self.chk_fixed_date.get_active():
+				self.month_box.set_sensitive(False)
+				self.day_box.set_sensitive(False)
+			self.hour_box.set_sensitive(True)
+			self.minute_box.set_sensitive(True)
+	#def _chk_interval_status
+			
+	def _chk_fixed_dates_status(self,widget):
+		if self.chk_fixed_date.get_active():
+			self.day_box.set_sensitive(not self._get_days_active())
+			self.month_box.set_sensitive(True)
+			self.chk_interval.set_active(False)
+			self.chk_special_dates.set_active(False)
+		else:
+			self.day_box.set_sensitive(False)
+			self.month_box.set_sensitive(False)
+	#def _chk_interval_status
+
+	def _chk_special_dates_status(self,widget):
+		if self.chk_special_dates.get_active():
+			self.cmb_special_dates.set_sensitive(True)
+			self._activate_days(False)
+		else:
+			self.cmb_special_dates.set_sensitive(False)
+			self._activate_days(True)
+	#def _chk_interval_status
+
+	def _get_days_active(self):
+		sw_active=False
+		widgets=[self.chk_monday,
+				self.chk_thursday,
+				self.chk_wednesday,
+				self.chk_tuesday,
+				self.chk_friday,
+				self.chk_saturday,
+				self.chk_sunday]
+		for widget in widgets:
+			if widget.get_active():
+				sw_active=True
+				break
+		return sw_active
+
+	def _enable_fixed_dates(self,widget):
+		sw_enable=True
+		sw_enable=self._get_days_active()
+		if sw_enable:
+			if self.chk_interval.get_active():
+				self._load_interval_data(True)
+				self.day_box.set_sensitive(False)
+			else:
+				self.month_box.set_sensitive(True)
+				self.day_box.set_sensitive(False)
+		else:
+			if self.chk_interval.get_active():
+				self._load_interval_data(True)
+			else:
+				self.day_box.set_sensitive(self.chk_fixed_date.get_active())
+				self.month_box.set_sensitive(self.chk_fixed_date.get_active())
+
+	def _activate_days(self,state):
+		widgets=[self.chk_monday,
+				self.chk_thursday,
+				self.chk_wednesday,
+				self.chk_tuesday,
+				self.chk_friday,
+				self.chk_saturday,
+				self.chk_sunday]
+		for widget in widgets:
+			widget.set_sensitive(state)
+
+	def _put_info(self):
+			return True
+
+	def _parse_scheduled(self,container,widget=None):
+		task_details={}
+		parser=cronParser()
+		dow=''
+		widgets=[self.chk_monday,
+			self.chk_thursday,
+			self.chk_wednesday,
+			self.chk_tuesday,
+			self.chk_friday,
+			self.chk_saturday,
+			self.chk_sunday]
+		cont=1
+		for day_widget in widgets:
+			print(day_widget)
+			if day_widget.get_active():
+				print("Cont: "+str(cont))
+				dow=dow+str(cont)+','
+			cont+=1
+		if dow:
+			dow=dow.rstrip(',')
+		else:
+			dow='*'
+		task_details['dow']=dow
+		if self.cmb_months.is_sensitive():
+			task_details['mon']=self.cmb_months.get_active_text()
+		else:
+			task_details['mon']='*'
+		if self.cmb_days.is_sensitive():
+			task_details['dom']=self.cmb_days.get_active_text()
+		else:
+			task_details['dom']='*'
+		if self.cmb_hours.is_sensitive():
+			task_details['h']=self.cmb_hours.get_active_text()
+		else:
+			task_details['h']='*'
+		if self.cmb_minutes.is_sensitive():
+			task_details['m']=self.cmb_minutes.get_active_text()
+		else:
+			task_details['m']='0'
+
+		if self.chk_interval.get_active():
+			interval=self.cmb_interval.get_active_text()
+			units=self.cmb_dates.get_active_text()
+			if units==_("hour(s)"):
+				task_details['h']+="/"+interval
+			if units==_("day(s)"):
+				task_details['dom']="*/"+interval
+			if units==_("month(s)"):
+				task_details['mon']="*/"+interval
+		task_details['hidden']=0
+		print(parser.parse_taskData(task_details))
+		self.lbl_info.set_text("Task schedule: "+(parser.parse_taskData(task_details)))
+
+	def load_basic_task_details(self,task_data):
+		self._clear_screen()
+		if task_data['m'].isdigit():
+			cursor=0
+			for minute in range(0,60,5):
+				if minute>int(task_data['m']):
+					break
+				cursor+=1
+			self.cmb_minutes.set_active(cursor-1)
+		else:
+			self.cmb_minutes.set_active(0)
+
+		if task_data['h'].isdigit():
+			self.cmb_hours.set_active(int(task_data['h']))
+#		elif task_data['h']=='*':
+#			self.chk_hourly.set_active(True)
+#		else:
+#			self.txt_hour.set_text('0')
+
+		sw_fixed_mon=False
+		sw_fixed_dom=False
+		if task_data['dom'].isdigit():
+			self.cmb_days.set_active(int(task_data['dom']))
+			sw_fixed_dom=True
+		else:
+			if task_data['dom'].startswith('*'):
+				self.chk_interval.set_active(True)
+				if '/' in task_data['dom']:
+					pos=task_data.split('/')
+					self.cmb_interval.set_active(pos[1])
+				else:
+					self.cmb_interval.set_active(0)
+				self.cmb_dates.set_active(1)
+				self.days_box.set_sensitive(False)
+				self.hour_box.set_sensitive(True)
+#		else:
+#			self.txt_day.set_text('0')
+#			self.chk_daily.set_active(True)
+
+		if task_data['mon'].isdigit():
+			self.cmb_months.set_active(int(task_data['mon']))
+			sw_fixed_mon=True
+		else:
+			if task_data['mon'].startswith('*'):
+				self.chk_interval.set_active(True)
+				if '/' in task_data['mon']:
+					pos=task_data.split('/')
+					self.cmb_interval.set_active(pos[1])
+				else:
+					self.cmb_interval.set_active(0)
+				self.cmb_dates.set_active(3)
+				self.month_box.set_sensitive(False)
+				self.hour_box.set_sensitive(True)
+#			self.txt_month.set_text('0')
+#			self.chk_monthly.set_active(True)
+
+		if sw_fixed_mon and sw_fixed_dom:
+			self.chk_fixed_date.set_active(True)
+
+		if task_data['dow'].isdigit():
+			array_dow=[task_data['dow']]
+		else:
+			array_dow=task_data['dow'].split(',')
+		for dow in array_dow:
+			if dow=="1":
+				self.chk_monday.set_active(True)
+				continue
+			if dow=="2":
+				self.chk_tuesday.set_active(True)
+				continue
+			if dow=="3":
+				self.chk_wednesday.set_active(True)
+				continue
+			if dow=="4":
+				self.chk_thursday.set_active(True)
+				continue
+			if dow=="5":
+				self.chk_friday.set_active(True)
+				continue
+			if dow=="6":
+				self.chk_saturday.set_active(True)
+				continue
+			if dow=="7":
+				self.chk_sunday.set_active(True)
+				continue
+#			self.chk_weekly.set_active(True)
+
+	def _clear_screen(self):
+		widgets=[self.chk_monday,
+				self.chk_thursday,
+				self.chk_wednesday,
+				self.chk_tuesday,
+				self.chk_friday,
+				self.chk_saturday,
+				self.chk_sunday]
+		for widget in widgets:
+			widget.set_active(False)
+		self.cmb_hours.set_active(0)
+		self.cmb_minutes.set_active(0)
+		self.cmb_days.set_active(0)
+		self.cmb_months.set_active(0)
+		self.cmb_interval.set_active(0)
+		self.cmb_dates.set_active(0)
+		self.chk_special_dates.set_active(False)
+		self.chk_interval.set_active(False)
+		self.chk_fixed_date.set_active(False)
+
+	def render_detailed(self,gtkGrid,btn_apply=True):
 		self.chk_monday=Gtk.ToggleButton(_("Monday"))
 		self.chk_thursday=Gtk.ToggleButton(_("Thursday"))
 		self.chk_wednesday=Gtk.ToggleButton(_("Wednesday"))
@@ -126,7 +541,7 @@ class TaskDetails:
 			gtkGrid.attach(self.btn_apply,5,14,1,1)
 		return(gtkGrid)
 
-	def load_task_details(self,task_data):
+	def detailed_load_task_details(self,task_data):
 		self.txt_min.set_text('0')
 		self.txt_hour.set_text('0')
 		self.chk_hourly.set_active(False)
@@ -250,7 +665,8 @@ class TaskScheduler:
 		self.tasks_label=builder.get_object("tasks_label")
 		self.tasks_tv=builder.get_object("tasks_treeview")
 		self.task_details_grid=TaskDetails()
-		td_grid=self.task_details_grid.render(builder.get_object("task_details_grid"))
+#		td_grid=self.task_details_grid.render_detailed(builder.get_object("task_details_grid"))
+		td_grid=self.task_details_grid.render_basic(builder.get_object("task_details_grid"))
 		self.tasks_store=Gtk.ListStore(str,str,GdkPixbuf.Pixbuf)
 		self.tasks_tv.set_model(self.tasks_store)
 
@@ -281,7 +697,7 @@ class TaskScheduler:
 		#Add tasks
 		self.add_task_box=builder.get_object("add_task_box")
 		self.add_task_grid=TaskDetails()
-		at_grid=self.add_task_grid.render(builder.get_object("add_task_grid"),False)
+		at_grid=self.add_task_grid.render_basic(builder.get_object("add_task_grid"),False)
 		builder.get_object("btn_cancel_add").connect("button-release-event", self.cancel_add_clicked)
 		self.cmb_task_names=builder.get_object("cmb_task_names")
 		self.cmb_task_cmds=builder.get_object("cmb_task_cmds")
@@ -442,140 +858,10 @@ class TaskScheduler:
 				print("Adding %s" % taskDesc)
 				for cmd,calendar in taskData.items():
 					print("Parsing "+str(calendar))
-					parsed_calendar=self.parse_taskData(calendar)
+					parser=cronParser()
+					parsed_calendar=parser.parse_taskData(calendar)
 					self.tasks_store.append(("<span font='Roboto'><b>"+cmd+"</b></span>\n"+"<span font='Roboto' size='small'><i>"+taskDesc+"</i></span>","<span font='Roboto' size='small'>"+parsed_calendar+"</span>",self.remove_icon))
 	#def populate_tasks_tv
-
-	###
-	#Input: dict
-	###
-	def parse_taskData(self,taskData):
-		parsed_data=[]
-		parsed_calendar=''
-		expr={}
-		day_dict={'1':'Mo','2':'Tu','3':'We','4':'Th','5':'Fr','6':'Sa','7':'Su','*':'every'}
-		mon_dict={'1':'Jan','2':'Feb','3':'Mar','4':'Apr','5':'May','6':'Jun','7':'Jul','8':'Aug','9':'Sep','10':'Oct','11':'Nov','12':'Dec','*':'every'}
-		mon_expr=self.parse_cron_expression(taskData['mon'],mon_dict)
-		dow_expr=self.parse_cron_expression(taskData['dow'],day_dict)
-		dom_expr=self.parse_cron_expression(taskData['dom'])
-		min_expr=self.parse_cron_expression(taskData['m'])
-		hou_expr=self.parse_cron_expression(taskData['h'])
-		time_expr=self.parse_time_expr(hou_expr,min_expr)
-		date_expr=self.parse_date_expr(mon_expr,dow_expr,dom_expr)
-		parsed_data=" ".join([time_expr,date_expr])
-		if parsed_data[0].isdigit():	
-			parsed_calendar="At " + parsed_data
-		else:
-			parsed_calendar=parsed_data
-		return parsed_calendar.capitalize()
-	#def parse_taskData(self,taskData):
-
-	def parse_time_expr(self,hour,minute):
-		sw_err=False
-		try:
-			int(hour)
-			int(minute)
-		except:
-			sw_err=True
-		if not sw_err:
-			time_expr=hour+':'+minute
-		else:
-			if minute!='every':
-				minute=minute+' '+_("minutes")
-			else:
-				minute='each minute'
-			if hour!='every':
-				hour=hour+' '+_("o'clock")
-				time_expr=_("%s %s" % (hour,minute))
-			else:
-				hour=hour+' '+_("hour")
-				time_expr=_("%s of %s" % (minute,hour))
-		return time_expr
-	#def parse_time_expr
-
-	def parse_date_expr(self,mon,dow,dom):
-		sw_err=False
-		time_expr=''
-		try:
-			int(dom)
-			int(mon)
-		except:
-			sw_err=True
-		time_expr=_("%s %s" % (dom,mon))
-		if sw_err:
-			if dom=='every':
-				dom=_("everyday")
-			elif mon=='every' in mon:
-				dom=_(("day %s") % dom)
-			elif ',' in dom:
-				dom=_(("days %s") % dom)
-			elif 'from' in dom:
-				dom=_(("days %s") % dom)
-			if mon=='every':
-				mon=_('every month')
-			time_expr="%s %s" % (dom,mon)
-
-		if dow!='every':
-			time_expr=_("on %s, %s" % (dow,time_expr))
-		else:
-			time_expr=_("on %s" % time_expr)
-
-		return time_expr
-	#def parse_time_expr
-
-	def parse_cron_expression(self,data,description_dict={}):
-		(each,at_values,range_values,extra_range,values)=('','','','','')
-#	*/2 -> Each two time units
-#	1-2 -> Range between 1 and 2
-#	1,2 -> At 1 and 2
-#	1 -> direct value
-		if data in description_dict.keys():
-			values=description_dict[data]
-		else:
-			if '/' in data:
-				expr=data.split('/')
-				each=expr[-1]
-				data=expr[0]
-			if ',' in data:
-				at_values=data.split(',')
-				value_desc=[]
-				for value in at_values:
-					if '-' in value:
-						extra_range=value
-					else:
-						if value in description_dict.keys():
-							value_desc.append(description_dict[value])
-				at_values=value_desc
-			if '-' in data or extra_range:
-				if extra_range:
-					data=extra_range
-				range_values=data.split('-')
-				value_desc=[]
-				for value in range_values:
-					if value in description_dict.keys():
-						value_desc.append(description_dict[value])
-				if value_desc:
-					range_values=value_desc
-		(str_range,str_each,str_at)=('','','')
-		if range_values:
-			str_range=(_("from %s to %s ") % (range_values[0],range_values[1]))
-		if each:
-			str_each=(_("each %s ") % each)
-		if at_values:
-			if range_values:
-				str_at=(_("and %s and %s") % (','.join(at_values[:-1]),at_values[-1]))
-			else:
-				str_at=(_("at %s and %s") % (','.join(at_values[:-1]),at_values[-1]))
-
-		retval=str_range+str_at+str_each+values
-		if retval=='':
-			if len(data)<2 and data!='*':
-				data='0'+data
-			elif data=='*':
-				data='every'
-			retval=data
-		return (retval.rstrip('\n'))
-	#def parse_cron_expression
 
 	def task_clicked(self,treeview,event=None):
 		sw_show=True
@@ -599,7 +885,8 @@ class TaskScheduler:
 					task_data=self.scheduled_tasks[task_name][task_cmd]
 					print("Loading details of task %s of group %s"% (task_cmd,task_name))
 #			self.load_task_details(task_data)
-					self.task_details_grid.load_task_details(task_data)
+#					self.task_details_grid.load_task_details(task_data)
+					self.task_details_grid.load_basic_task_details(task_data)
 			if self.btn_signal_id:
 				self.task_details_grid.btn_apply.disconnect(self.btn_signal_id)
 			self.btn_signal_id=self.task_details_grid.btn_apply.connect("clicked",self.task_details_grid.put_task_details,task_name,task_cmd,taskFilter)
