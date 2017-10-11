@@ -114,12 +114,10 @@ class ServerScheduler():
 			with open(wrkfile,'w') as json_data:
 				json.dump(sched_tasks,json_data,indent=4)
 		except Exception as e:
-			print('*****')
-			print('*****')
 			print(e)
-			print('*****')
-			print('*****')
-		self._debug("22222222222222222222")
+		#UPDATE N4D VARIABLE
+		#UPDATE N4D VARIABLE
+		#UPDATE N4D VARIABLE
 		self._debug("%s updated" % task_name)
 	#def write_tasks
 
