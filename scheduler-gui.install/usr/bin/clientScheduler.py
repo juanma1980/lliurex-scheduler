@@ -1,1 +1,1 @@
-../../../python3-client-scheduler.install/usr/share/clientScheduler/clientScheduler.py
+../../../python3-libscheduler.install/usr/share/clientScheduler/clientScheduler.py
