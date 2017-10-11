@@ -20,7 +20,7 @@ import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 import gettext
-gettext.textdomain('lliurex-up')
+gettext.textdomain('taskscheduler')
 _ = gettext.gettext
 
 #BASE_DIR="/usr/share/taskScheduler/"
@@ -31,8 +31,9 @@ LOCK_PATH="/var/run/taskScheduler.lock"
 
 class TaskDetails:
 	
-	def __init__(self):
-		up=True
+	def __init__(self,scheduler):
+		self.scheduler=scheduler
+		self.task_serial=0
 
 	def _format_widget_for_grid(self,widget):
 		#common
@@ -83,7 +84,6 @@ class TaskDetails:
 			position=total-1
 		elif position<0:
 			position=0
-		print("POSITION: "+str(position))
 		self.cmb_interval.set_active(position)
 
 	def _load_date_data(self):
@@ -198,6 +198,7 @@ class TaskDetails:
 		if btn_apply:
 			self.btn_apply=Gtk.Button(stock=Gtk.STOCK_APPLY)
 			gtkGrid.attach(self.btn_apply,5,15,1,1)
+			self.btn_apply.connect("clicked",self.update_task_details)
 		#Signals
 		gtkGrid.connect("event",self._parse_scheduled)
 		self.chk_fixed_date.connect("toggled",self._chk_fixed_dates_status)
@@ -210,12 +211,14 @@ class TaskDetails:
 		self.chk_sunday.connect("toggled",self._enable_fixed_dates)
 		self.chk_interval.connect("toggled",self._chk_interval_status)
 		self.chk_special_dates.connect("toggled",self._chk_special_dates_status)
+		#handled signals
 		self.cmb_dates.connect("changed",self._load_interval_data)
 		self.cmb_minutes.connect("changed",self._parse_scheduled)
 		self.cmb_hours.connect("changed",self._parse_scheduled)
 		self.cmb_months.connect("changed",self._parse_scheduled)
 		self.cmb_days.connect("changed",self._parse_scheduled)
 		self.cmb_interval.connect("changed",self._parse_scheduled)
+
 		#Initial control status
 		self.interval_box.set_sensitive(False)
 		self.cmb_special_dates.set_sensitive(False)
@@ -225,6 +228,7 @@ class TaskDetails:
 
 	def _chk_interval_status(self,widget):
 		if self.chk_interval.get_active():
+			self.chk_fixed_date.set_active(False)
 			self.interval_box.set_sensitive(True)
 			self.chk_special_dates.set_sensitive(True)
 			self.hour_box.set_sensitive(False)
@@ -240,11 +244,14 @@ class TaskDetails:
 	#def _chk_interval_status
 			
 	def _chk_fixed_dates_status(self,widget):
+		if widget==self.chk_interval:
+			return True
 		if self.chk_fixed_date.get_active():
 			self.day_box.set_sensitive(not self._get_days_active())
 			self.month_box.set_sensitive(True)
 			self.chk_interval.set_active(False)
 			self.chk_special_dates.set_active(False)
+			self.chk_interval.set_active(False)
 		else:
 			self.day_box.set_sensitive(False)
 			self.month_box.set_sensitive(False)
@@ -318,9 +325,7 @@ class TaskDetails:
 			self.chk_sunday]
 		cont=1
 		for day_widget in widgets:
-			print(day_widget)
 			if day_widget.get_active():
-				print("Cont: "+str(cont))
 				dow=dow+str(cont)+','
 			cont+=1
 		if dow:
@@ -347,18 +352,32 @@ class TaskDetails:
 
 		if self.chk_interval.get_active():
 			interval=self.cmb_interval.get_active_text()
-			units=self.cmb_dates.get_active_text()
-			if units==_("hour(s)"):
-				task_details['h']+="/"+interval
-			if units==_("day(s)"):
-				task_details['dom']="*/"+interval
-			if units==_("month(s)"):
-				task_details['mon']="*/"+interval
+			if interval:
+				units=self.cmb_dates.get_active_text()
+				if units==_("hour(s)"):
+					task_details['h']+="/"+interval
+				if units==_("day(s)"):
+					task_details['dom']="1/"+interval
+				if units==_("month(s)"):
+					task_details['mon']="1/"+interval
 		task_details['hidden']=0
 		print(parser.parse_taskData(task_details))
 		self.lbl_info.set_text("Task schedule: "+(parser.parse_taskData(task_details)))
 
-	def load_basic_task_details(self,task_data):
+	def load_basic_task_details(self,task_name,task_serial,task_data):
+		print("T_load: "+task_name)
+		print("C_load: "+task_serial)
+		print(task_data)
+		print("****")
+		self.task_name=task_name
+		self.task_serial=task_serial
+		self.task_cmd=task_data['cmd']
+		self.cmb_dates.emit_stop_by_name("changed")
+		self.cmb_minutes.emit_stop_by_name("changed")
+		self.cmb_hours.emit_stop_by_name("changed")
+		self.cmb_months.emit_stop_by_name("changed")
+		self.cmb_days.emit_stop_by_name("changed")
+		self.cmb_interval.emit_stop_by_name("changed")
 		self._clear_screen()
 		if task_data['m'].isdigit():
 			cursor=0
@@ -372,10 +391,13 @@ class TaskDetails:
 
 		if task_data['h'].isdigit():
 			self.cmb_hours.set_active(int(task_data['h']))
-#		elif task_data['h']=='*':
-#			self.chk_hourly.set_active(True)
-#		else:
-#			self.txt_hour.set_text('0')
+		elif '/' in task_data['h']:
+			pos=task_data['h'].split('/')
+			self.chk_interval.set_active(True)
+			self.cmb_interval.set_active(int(pos[1])-1)
+			self.cmb_dates.set_active(0)
+			self.hour_box.set_sensitive(False)
+
 
 		sw_fixed_mon=False
 		sw_fixed_dom=False
@@ -383,16 +405,14 @@ class TaskDetails:
 			self.cmb_days.set_active(int(task_data['dom']))
 			sw_fixed_dom=True
 		else:
-			if task_data['dom'].startswith('*'):
+			if '/' in task_data['dom']:
 				self.chk_interval.set_active(True)
-				if '/' in task_data['dom']:
-					pos=task_data.split('/')
-					self.cmb_interval.set_active(pos[1])
-				else:
-					self.cmb_interval.set_active(0)
+				pos=task_data.split('/')
+				self.cmb_interval.set_active(int(pos[1])-1)
 				self.cmb_dates.set_active(1)
-				self.days_box.set_sensitive(False)
+				self.day_box.set_sensitive(False)
 				self.hour_box.set_sensitive(True)
+
 #		else:
 #			self.txt_day.set_text('0')
 #			self.chk_daily.set_active(True)
@@ -401,13 +421,10 @@ class TaskDetails:
 			self.cmb_months.set_active(int(task_data['mon']))
 			sw_fixed_mon=True
 		else:
-			if task_data['mon'].startswith('*'):
+			if '/' in task_data['mon']:
 				self.chk_interval.set_active(True)
-				if '/' in task_data['mon']:
-					pos=task_data.split('/')
-					self.cmb_interval.set_active(pos[1])
-				else:
-					self.cmb_interval.set_active(0)
+				pos=task_data.split('/')
+				self.cmb_interval.set_active(pos[1])
 				self.cmb_dates.set_active(3)
 				self.month_box.set_sensitive(False)
 				self.hour_box.set_sensitive(True)
@@ -445,6 +462,36 @@ class TaskDetails:
 				continue
 #			self.chk_weekly.set_active(True)
 
+	def _set_screen_states(self):
+		if self_get_days_active():
+			self.chk_fixed_date.set_active(False)
+			self.cmb_months.set_sensitive(True)
+		if self._chk_fixed_date.get_active():
+			self.chk_interval.set_active(false)
+			self.cmb_dates.set_sensitive(False)
+			self.cmb_interval.set_sensitive(False)
+		if self._chk_interval.get_active():
+			self._chk_fixed_date.set_active(False)
+			if self.cmb_dates.get_active_text()==_("hour(s)"):
+				self.hour_box.set_sensitive(False)
+				self.day_box.set_sensitive(True)
+				self.month_box.set_sensitive(True)
+			if self.cmb_dates.get_active_text()==_("day(s)"):
+				self.hour_box.set_sensitive(True)
+				self.day_box.set_sensitive(False)
+				self.month_box.set_sensitive(True)
+			if self.cmb_dates.get_active_text()==_("week(s)"):
+				self.hour_box.set_sensitive(True)
+				self.day_box.set_sensitive(False)
+				self.month_box.set_sensitive(True)
+			if self.cmb_dates.get_active_text()==_("month(s)"):
+				self.hour_box.set_sensitive(True)
+				self.day_box.set_sensitive(True)
+				self.month_box.set_sensitive(False)
+		if self._chk_special_dates.get_active():	
+				self.day_box.set_sensitive(False)
+				self._activate_days(False)
+
 	def _clear_screen(self):
 		widgets=[self.chk_monday,
 				self.chk_thursday,
@@ -465,144 +512,79 @@ class TaskDetails:
 		self.chk_interval.set_active(False)
 		self.chk_fixed_date.set_active(False)
 
-	def render_detailed(self,gtkGrid,btn_apply=True):
-		self.chk_monday=Gtk.ToggleButton(_("Monday"))
-		self.chk_thursday=Gtk.ToggleButton(_("Thursday"))
-		self.chk_wednesday=Gtk.ToggleButton(_("Wednesday"))
-		self.chk_tuesday=Gtk.ToggleButton(_("Tuesday"))
-		self.chk_friday=Gtk.ToggleButton(_("Friday"))
-		self.chk_saturday=Gtk.ToggleButton(_("Saturday"))
-		self.chk_sunday=Gtk.ToggleButton(_("Sunday"))
-		self.btn_monthUp=Gtk.Button(image=Gtk.Image(stock=Gtk.STOCK_GO_UP))
-		self._format_widget_for_grid(self.btn_monthUp)
-		self.txt_month=Gtk.Entry()
-		self._format_widget_for_grid(self.txt_month)
-		self.chk_monthly=Gtk.CheckButton("Monthly")
-		self._format_widget_for_grid(self.chk_monthly)
-		self.btn_monthDown=Gtk.Button(image=Gtk.Image(stock=Gtk.STOCK_GO_DOWN))
-		self._format_widget_for_grid(self.btn_monthDown)
-		self.btn_dayUp=Gtk.Button(image=Gtk.Image(stock=Gtk.STOCK_GO_UP))
-		self._format_widget_for_grid(self.btn_dayUp)
-		self.txt_day=Gtk.Entry()
-		self._format_widget_for_grid(self.txt_day)
-		self.btn_dayDown=Gtk.Button(image=Gtk.Image(stock=Gtk.STOCK_GO_DOWN))
-		self._format_widget_for_grid(self.btn_dayDown)
-		self.chk_daily=Gtk.CheckButton("Daily")
-		self._format_widget_for_grid(self.chk_daily)
-		self.chk_weekly=Gtk.CheckButton("Weekly")
-		self._format_widget_for_grid(self.chk_weekly)
-		self.btn_hourUp=Gtk.Button(image=Gtk.Image(stock=Gtk.STOCK_GO_UP))
-		self._format_widget_for_grid(self.btn_hourUp)
-		self.txt_hour=Gtk.Entry()
-		self._format_widget_for_grid(self.txt_hour)
-		self.btn_hourDown=Gtk.Button(image=Gtk.Image(stock=Gtk.STOCK_GO_DOWN))
-		self._format_widget_for_grid(self.btn_hourDown)
-		self.chk_hourly=Gtk.CheckButton("Hourly")
-		self._format_widget_for_grid(self.chk_hourly)
-		self.btn_minUp=Gtk.Button(image=Gtk.Image(stock=Gtk.STOCK_GO_UP))
-		self._format_widget_for_grid(self.btn_minUp)
-		self.txt_min=Gtk.Entry()
-		self._format_widget_for_grid(self.txt_min)
-		self.btn_minDown=Gtk.Button(image=Gtk.Image(stock=Gtk.STOCK_GO_DOWN))
-		self._format_widget_for_grid(self.btn_minDown)
-		self.btn_apply=Gtk.Button(stock=Gtk.STOCK_APPLY)
-		label=Gtk.Label(_("Month"))
-		gtkGrid.add(label)
-		gtkGrid.attach_next_to(self.btn_monthUp,label,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.txt_month,self.btn_monthUp,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.btn_monthDown,self.txt_month,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.chk_monthly,self.btn_monthDown,Gtk.PositionType.BOTTOM,1,1)
-		label=Gtk.Label(("Day of month"))
-		gtkGrid.add(label)
-		gtkGrid.attach_next_to(self.btn_dayUp,label,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.txt_day,self.btn_dayUp,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.btn_dayDown,self.txt_day,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.chk_daily,self.btn_dayDown,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(Gtk.Label(("Day of week")),label,Gtk.PositionType.RIGHT,2,1)
-		gtkGrid.attach_next_to(self.chk_monday,self.btn_dayUp,Gtk.PositionType.RIGHT,1,1)
-		gtkGrid.attach_next_to(self.chk_tuesday,self.chk_monday,Gtk.PositionType.RIGHT,1,1)
-		gtkGrid.attach_next_to(self.chk_wednesday,self.chk_monday,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.chk_thursday,self.chk_wednesday,Gtk.PositionType.RIGHT,1,1)
-		gtkGrid.attach_next_to(self.chk_friday,self.chk_wednesday,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.chk_saturday,self.chk_friday,Gtk.PositionType.RIGHT,1,1)
-		gtkGrid.attach_next_to(self.chk_sunday,self.chk_friday,Gtk.PositionType.BOTTOM,1,1)
-		label=Gtk.Label(_("Hour"))
-		gtkGrid.add(label)
-		gtkGrid.attach_next_to(self.btn_hourUp,label,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.txt_hour,self.btn_hourUp,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.btn_hourDown,self.txt_hour,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.chk_hourly,self.btn_hourDown,Gtk.PositionType.BOTTOM,1,1)
-		label=Gtk.Label(_("Minute"))
-		gtkGrid.add(label)
-		gtkGrid.attach_next_to(self.btn_minUp,label,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.txt_min,self.btn_minUp,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.btn_minDown,self.txt_min,Gtk.PositionType.BOTTOM,1,1)
-		if btn_apply:
-			gtkGrid.attach(self.btn_apply,5,14,1,1)
-		return(gtkGrid)
 
-	def detailed_load_task_details(self,task_data):
-		self.txt_min.set_text('0')
-		self.txt_hour.set_text('0')
-		self.chk_hourly.set_active(False)
-		self.txt_day.set_text('0')
-		self.chk_daily.set_active(False)
-		self.txt_month.set_text('0')
-		self.chk_monthly.set_active(False)
-		self.chk_weekly.set_active(False)
+	def update_task_details(self,widget=None):
+		if self.task_name and self.task_serial:
+			task_data=self.get_task_details()
+			self.scheduler.write_tasks(task_data,'local')
+		
+	#def update_task_details
 
-		if task_data['m'].isdigit():
-			self.txt_min.set_text(task_data['m'])
-		else:
-			self.txt_min.set_text('0')
-
-		if task_data['h'].isdigit():
-			self.txt_hour.set_text(task_data['h'])
-		elif task_data['h']=='*':
-			self.chk_hourly.set_active(True)
-		else:
-			self.txt_hour.set_text('0')
-
-
-		if task_data['dom'].isdigit():
-			self.txt_day.set_text(task_data['dom'])
-		else:
-			self.txt_day.set_text('0')
-			self.chk_daily.set_active(True)
-
-		if task_data['mon'].isdigit():
-			self.txt_month.set_text(task_data['mon'])
-		else:
-			self.txt_month.set_text('0')
-			self.chk_monthly.set_active(True)
-
-		if task_data['dow'].isdigit():
-			self.chk_weekly.set_active(True)
-	#def load_task_details
-	
-	def put_task_details(self,widget,task_name,task_cmd,taskFilter):
-		m=self.txt_min.get_text()
-		h=self.txt_hour.get_text()
-		dom=self.txt_day.get_text()
-		mon=self.txt_month.get_text()
-		dow='*'
-		hidden=0
+	def get_task_details(self,widget=None,task_name=None,task_serial=None,task_cmd=None):
 		details={}
-		details={'m':m,'h':h,'dom':dom,'mon':mon,'dow':dow,'hidden':hidden}
-		self.tasks={}
-		print(details)
-#		with open('/home/lliurex/borrar/tasks.json') as json_data:
-#			tasks=json.load(json_data)
-		if task_name in self.tasks:
-			self.tasks[task_name][task_cmd]=details
-		else: 
-			self.tasks[task_name]={task_cmd:details}
+		if task_name:
+			self.task_name=task_name
+		if task_serial:
+			self.task_serial=task_serial
+		if task_cmd:
+			self.task_cmd=task_cmd
+		dow=''
+		widgets=[self.chk_monday,
+				self.chk_thursday,
+				self.chk_wednesday,
+				self.chk_tuesday,
+				self.chk_friday,
+				self.chk_saturday,
+				self.chk_sunday]
+		cont=1
+		for widget in widgets:
+			if widget.get_active():
+				dow+=str(cont)+','
+			cont+=1
+		if dow!='':
+			dow=dow.rstrip(',')
+		else:
+			dow='*'
+		details['dow']=dow
+		if self.cmb_hours.is_sensitive():
+			details["h"]=self.cmb_hours.get_active_text()
+		else:
+			details["h"]="*"
+		if self.cmb_minutes.is_sensitive():
+			details["m"]=self.cmb_minutes.get_active_text()
+		else:
+			details["m"]="*"
+		if self.cmb_months.is_sensitive():
+			if self.cmb_months.get_active_text().isdigit():
+				details["mon"]=self.cmb_months.get_active_text()
+			else:
+				details["mon"]="*"
+		else:
+			details["mon"]="*"
+		if self.cmb_days.is_sensitive():
+			if self.cmb_days.get_active_text().isdigit():
+				details["dom"]=self.cmb_days.get_active_text()
+			else:
+				details["dom"]="*"
+		else:
+			details["dom"]="*"
 
-#		with open('/home/lliurex/borrar/tasks.json','w') as json_data:
-#			json.dump(tasks,json_data)
-
-	def get_task_details(self):
-		return self.tasks
+		if self.cmb_dates.is_sensitive():
+			if self.cmb_dates.get_active_text()==_('hour(s)'):
+				details['h']="0/"+self.cmb_interval.get_active_text()
+			if self.cmb_dates.get_active_text()==_('day(s)'):
+				details['dom']="1/"+self.cmb_interval.get_active_text()
+			if self.cmb_dates.get_active_text()==_('week(s)'):
+				week=int(self.cmb_interval.get_active_text())*7
+				details['dom']="1/"+str(weeks)
+			if self.cmb_dates.get_active_text()==_('month(s)'):
+				details['mon']="1/"+self.cmb_interval.get_active_text()
+		task={}
+		details['cmd']=self.task_cmd
+		if not self.task_serial:
+			self.task_serial=0
+		task[self.task_name]={self.task_serial:details}
+		return task
 
 class TaskScheduler:
 
@@ -614,8 +596,8 @@ class TaskScheduler:
 	def isscheduler_running(self):
 
 		if os.path.exists(LOCK_PATH):
-			dialog = Gtk.MessageDialog(None,0,Gtk.MessageType.ERROR, Gtk.ButtonsType.CANCEL, "Lliurex UP")
-			dialog.format_secondary_text(_("Lliurex Up is now running."))
+			dialog = Gtk.MessageDialog(None,0,Gtk.MessageType.ERROR, Gtk.ButtonsType.CANCEL, "Task Scheduler")
+			dialog.format_secondary_text(_("There's another instance of Task Scheduler running."))
 			dialog.run()
 			sys.exit(1)
 
@@ -623,7 +605,7 @@ class TaskScheduler:
 		
 		try:
 			print ("  [taskScheduler]: Checking root")
-			f=open("/etc/lliurex-up.token","w")
+			f=open("/etc/scheduler/scheduler.token","w")
 			f.close()
 		except:
 			print ("  [taskScheduler]: No administration privileges")
@@ -654,8 +636,8 @@ class TaskScheduler:
 		self.view_tasks_eb=builder.get_object("view_tasks_eventbox")
 		self.btn_signal_id=None
 		#Toolbar
-		btn_add_task=builder.get_object("btn_add_task")
-		btn_add_task.connect("button-release-event", self.add_task_clicked)
+		self.btn_add_task=builder.get_object("btn_add_task")
+		self.btn_add_task.connect("button-release-event", self.add_task_clicked)
 		self.btn_remote_tasks=builder.get_object("btn_remote_tasks")
 		self.btn_local_tasks=builder.get_object("btn_local_tasks")
 		self.btn_remote_tasks.connect("clicked",self.view_tasks_clicked,'remote')
@@ -664,11 +646,13 @@ class TaskScheduler:
 		self.tasks_box=builder.get_object("tasks_box")
 		self.tasks_label=builder.get_object("tasks_label")
 		self.tasks_tv=builder.get_object("tasks_treeview")
-		self.task_details_grid=TaskDetails()
+		self.task_details_grid=TaskDetails(self.scheduler_client)
 #		td_grid=self.task_details_grid.render_detailed(builder.get_object("task_details_grid"))
 		td_grid=self.task_details_grid.render_basic(builder.get_object("task_details_grid"))
-		self.tasks_store=Gtk.ListStore(str,str,GdkPixbuf.Pixbuf)
+		self.tasks_store=Gtk.ListStore(str,str,str,GdkPixbuf.Pixbuf)
 		self.tasks_tv.set_model(self.tasks_store)
+		self.tasks_tv.connect("button-release-event",self.task_clicked)
+		self.tasks_tv.connect("cursor-changed",self.task_clicked)
 
 		column=Gtk.TreeViewColumn(_("Task"))
 		cell=Gtk.CellRendererText()
@@ -676,31 +660,38 @@ class TaskScheduler:
 		column.add_attribute(cell,"markup",0)
 		column.set_expand(True)
 		self.tasks_tv.append_column(column)
-		self.tasks_tv.connect("button-release-event",self.task_clicked)
-		self.tasks_tv.connect("cursor-changed",self.task_clicked)
+		
+		column=Gtk.TreeViewColumn(_("Serial"))
+		cell=Gtk.CellRendererText()
+		column.pack_start(cell,True)
+		column.add_attribute(cell,"markup",1)
+		column.set_expand(True)
+		column.set_visible(False)
+		self.tasks_tv.append_column(column)
 		
 		column=Gtk.TreeViewColumn(_("When"))
 		cell=Gtk.CellRendererText()
 		cell.set_property("alignment",Pango.Alignment.CENTER)
 		column.pack_start(cell,False)
-		column.add_attribute(cell,"markup",1)
+		column.add_attribute(cell,"markup",2)
 		column.set_expand(True)
 		self.tasks_tv.append_column(column)		
 
 		column=Gtk.TreeViewColumn(_("Remove"))
 		cell=Gtk.CellRendererPixbuf()
 		column.pack_start(cell,True)
-		column.add_attribute(cell,"pixbuf",2)
+		column.add_attribute(cell,"pixbuf",3)
 		self.col_remove=column
 		self.tasks_tv.append_column(column)
 
 		#Add tasks
 		self.add_task_box=builder.get_object("add_task_box")
-		self.add_task_grid=TaskDetails()
+		self.add_task_grid=TaskDetails(self.scheduler_client)
 		at_grid=self.add_task_grid.render_basic(builder.get_object("add_task_grid"),False)
-		builder.get_object("btn_cancel_add").connect("button-release-event", self.cancel_add_clicked)
 		self.cmb_task_names=builder.get_object("cmb_task_names")
 		self.cmb_task_cmds=builder.get_object("cmb_task_cmds")
+		builder.get_object("btn_cancel_add").connect("clicked", self.cancel_add_clicked)
+		builder.get_object("btn_confirm_add").connect("clicked", self.save_task_details)
 		self.swt_remote=builder.get_object("swt_remote")
 		self.swt_local=builder.get_object("swt_local")
 
@@ -837,8 +828,8 @@ class TaskScheduler:
 		"""
 
 		self.style_provider=Gtk.CssProvider()
-		self.style_provider.load_from_data(css)
-		Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),self.style_provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+#		self.style_provider.load_from_data(css)
+#		Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),self.style_provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 		
 		self.window.set_name("WHITE_BACKGROUND")
 		self.scheduler_box.set_name("WHITE_BACKGROUND")
@@ -849,18 +840,17 @@ class TaskScheduler:
 	def populate_tasks_tv(self,parm):
 		self.scheduled_tasks={}
 		tasks=[]
-		tasks=self.scheduler_client.get_tasks(parm)
+		tasks=self.scheduler_client.get_scheduled_tasks(parm)
 		self.tasks_store.clear()
 		
 		for task in tasks:
-			for taskDesc,taskData in task.items():
-				self.scheduled_tasks[taskDesc]=taskData
-				print("Adding %s" % taskDesc)
-				for cmd,calendar in taskData.items():
-					print("Parsing "+str(calendar))
+			for task_name,task_serialized in task.items():
+				self.scheduled_tasks[task_name]=task_serialized
+				for serial,task in task_serialized.items():
 					parser=cronParser()
-					parsed_calendar=parser.parse_taskData(calendar)
-					self.tasks_store.append(("<span font='Roboto'><b>"+cmd+"</b></span>\n"+"<span font='Roboto' size='small'><i>"+taskDesc+"</i></span>","<span font='Roboto' size='small'>"+parsed_calendar+"</span>",self.remove_icon))
+					parsed_calendar=''
+					parsed_calendar=parser.parse_taskData(task)
+					self.tasks_store.append(("<span font='Roboto'><b>"+task['cmd']+"</b></span>\n"+"<span font='Roboto' size='small'><i>"+task_name+"</i></span>",serial,"<span font='Roboto' size='small'>"+parsed_calendar+"</span>",self.remove_icon))
 	#def populate_tasks_tv
 
 	def task_clicked(self,treeview,event=None):
@@ -877,19 +867,25 @@ class TaskScheduler:
 				taskFilter='remote'
 			else:
 				taskFilter='local'
-			task_id=model[data][0].split('\n')
-			task_cmd=task_id[0][task_id[0].find("<b>")+3:task_id[0].find("</b>")]
-			task_name=task_id[1][task_id[1].find("<i>")+3:task_id[1].find("</i>")]
+			task_data=model[data][0].split('\n')
+			task_serial=model[data][1].split('\n')[0]
+			task_cmd=task_data[0][task_data[0].find("<b>")+3:task_data[0].find("</b>")]
+			task_name=task_data[1][task_data[1].find("<i>")+3:task_data[1].find("</i>")]
+			print("****")
+			print(task_serial)
+			print("****")
+			task_serial=model[data][1]
 			if task_name in self.scheduled_tasks.keys():
-				if task_cmd in self.scheduled_tasks[task_name].keys():
-					task_data=self.scheduled_tasks[task_name][task_cmd]
-					print("Loading details of task %s of group %s"% (task_cmd,task_name))
+				if task_serial in self.scheduled_tasks[task_name].keys():
+						#					task_data=self.scheduled_tasks[task_name][task_cmd]
+					task_data=self.scheduled_tasks[task_name][task_serial]
+					print("Loading details of task %s of group %s"% (task_serial,task_name))
 #			self.load_task_details(task_data)
 #					self.task_details_grid.load_task_details(task_data)
-					self.task_details_grid.load_basic_task_details(task_data)
-			if self.btn_signal_id:
-				self.task_details_grid.btn_apply.disconnect(self.btn_signal_id)
-			self.btn_signal_id=self.task_details_grid.btn_apply.connect("clicked",self.task_details_grid.put_task_details,task_name,task_cmd,taskFilter)
+					self.task_details_grid.load_basic_task_details(task_name,task_serial,task_data)
+#			if self.btn_signal_id:
+#				self.task_details_grid.btn_apply.disconnect(self.btn_signal_id)
+#			self.btn_signal_id=self.task_details_grid.btn_apply.connect("clicked",self.task_details_grid.put_task_details,task_name,task_cmd,taskFilter)
 
 #			if taskFilter=='remote':
 #				self.btn_remote_tasks.set_active(False)
@@ -901,36 +897,20 @@ class TaskScheduler:
 			model.remove(data)
 	#def task_clicked			
 
-	def save_task_details(self,widget,task_name,task_cmd):
+	def save_task_details(self,widget):
+		task_name=self.cmb_task_names.get_active_text()
+		task_cmd=self.cmb_task_cmds.get_active_text()
+		task=self.add_task_grid.get_task_details(None,task_name,None,task_cmd)
+		print("****")
+		print(task)
+		print("****")
+
 		taskFilter='local'
+		print("Writing task info...")
 		if self.btn_remote_tasks.get_active():
 			taskFilter='remote'
-		m=self.txt_min.get_text()
-		h=self.txt_hour.get_text()
-		dom=self.txt_day.get_text()
-		mon=self.txt_month.get_text()
-		dow='*'
-		hidden=0
-		details={}
-		details={'m':m,'h':h,'dom':dom,'mon':mon,'dow':dow,'hidden':hidden}
-		with open('/home/lliurex/borrar/tasks.json') as json_data:
-			tasks=json.load(json_data)
-		if task_name in tasks:
-			tasks[task_name][task_cmd]=details
-		else: 
-			tasks[task_name]={task_cmd:details}
-
-		with open('/home/lliurex/borrar/tasks.json','w') as json_data:
-			json.dump(tasks,json_data)
-
-		if taskFilter=='remote':
-			self.btn_remote_tasks.set_active(False)
-			self.btn_remote_tasks.set_active(True)
-		else:
-			self.btn_local_task.set_active(False)
-			self.btn_local_task.set_active(True)
-
-		return True
+		self.scheduler_client.write_tasks(task,taskFilter)
+		return()
 
 	def view_tasks_clicked(self,widget,parm):
 		if not widget.get_active():
@@ -950,8 +930,7 @@ class TaskScheduler:
 		tasks=[]
 		names=[]
 		self.cmb_task_names.remove_all()
-		tasks=self.scheduler_client.get_tasks('local')
-		tasks.extend(self.scheduler_client.get_tasks('remote'))
+		tasks=self.scheduler_client.get_available_tasks()
 		for task in tasks:
 			for name in task.keys():
 				if name not in names:
@@ -966,13 +945,14 @@ class TaskScheduler:
 		else:
 			self.swt_local.set_active(1)
 			self.swt_remote.set_active(0)
+		self.btn_add_task.connect("clicked",self.save_task_details)
 
 	def load_add_task_details_cmds(self,widget,tasks):
 		cmds=[]
 		self.cmb_task_cmds.remove_all()
 		task_name=self.cmb_task_names.get_active_text()
 		for task in tasks:
-			for cmd in task[task_name].keys():
+			for cmd in task[task_name]:
 				if cmd not in cmds:
 					cmds.append(cmd)
 					self.cmb_task_cmds.append_text(cmd)

@@ -638,6 +638,7 @@
           <object class="GtkViewport" id="tasks_viewport">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="hexpand">True</property>
             <child>
               <object class="GtkScrolledWindow" id="tasks_scrolledwindow">
                 <property name="height_request">272</property>

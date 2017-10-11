@@ -5,17 +5,26 @@
 
 import os
 import json
-import xmlrpc.client as n4d
+import sys
+try:
+	import xmlrpc.client as n4d
+except ImportError:
+	raise ImportError("xmlrpc not available. Disabling server queries")
 import ssl
 
 class clientScheduler():
 	def __init__(self):
 		self.dbg=1
-		self.wrkdir='/tmp'
-		self.fallback_taskDir="/etc/scheduler/tasks.d"
-		self.fallback_schedTasksDir=self.fallback_taskDir+"/scheduled"
-		self.fallback_remoteTasksDir=self.fallback_schedTasksDir+"/local"
-		self.fallback_localTasksDir=self.fallback_schedTasksDir+"/remote"
+		self.sw_n4d=1
+		if hasattr(sys,'last_value'):
+		#If there's any error at this point it only could be an ImportError caused by xmlrpc
+			self.sw_n4d=0
+		else:
+			self.n4dclient=self._n4d_connect()
+		self.taskDir="/etc/scheduler/tasks.d"
+		self.schedTasksDir=self.taskDir+"/scheduled"
+		self.localTasksDir=self.schedTasksDir+"/local"
+		self.wrkfile="/home/lliurex/borrar/ltasks.json"
 	#def __init__
 
 	def _debug(self,msg):
@@ -23,25 +32,56 @@ class clientScheduler():
 			print("Scheduler Client: %s" % msg)
 	#def _debug
 
-	def get_tasks(self,taskFilter):
+	def get_available_tasks(self):
+		tasks=[]
+		wrkfiles=self._get_wrkfiles('available')
+		for wrkfile in wrkfiles:
+			task=self._read_tasks_file(wrkfile)
+			if task:
+				tasks.append(task)
+		self._debug(str(tasks))
+		return tasks
+
+	def get_scheduled_tasks(self,taskFilter):
 		tasks=[]
 		self._debug("Connecting to N4d")
-		try:
-			n4dclient=self._n4d_connect()
-			self._debug("Retrieving task list")
-			tasks=n4dclient.get_tasks("","ServerScheduler",taskFilter)
-			self._debug(str(tasks))
-		except:
-			self._debug("Unable to connect")
-			self._debug("Falling back to defaults")
-		return(tasks)
-
-	def _get_wrkfiles(self):
-		wrkfiles=[]
-		if os.path.isdir(self.wrkdir):
-			wrkfiles=os.listdir(self.wrkdir)
+		if taskFilter=='remote':
+			if self.sw_n4d:
+				tasks=self._get_server_tasks()
 		else:
-			wrkfiles=self.wrkfile
+			tasks=self._get_local_tasks()
+		return tasks
+
+	def _get_server_tasks(self):
+		tasks=[]
+		self._debug("Retrieving task list")
+		tasks=self.n4dclient.get_tasks("","ServerScheduler",'remote')
+#		self._debug(str(tasks))
+		return tasks
+	#def _get_server_tasks
+
+	def _get_local_tasks(self):
+		tasks=[]
+		wrkfiles=self._get_wrkfiles()
+		for wrkfile in wrkfiles:
+			task=self._sanitize_fields(self._read_tasks_file(wrkfile))
+			if task:
+				tasks.append(task)
+		return tasks
+	#def _get_local_tasks
+
+	def _get_wrkfiles(self,type=None):
+		if type=='available':
+			wrkDir=self.taskDir
+		else:
+			wrkDir=self.localTasksDir
+		wrkfiles=[]
+		self._debug("Opening %s"%wrkDir)
+		if os.path.isdir(wrkDir):
+			for f in os.listdir(wrkDir):
+				wrkfiles.append(wrkDir+'/'+f)
+		else:
+			wrkfiles.append(self.wrkfile)
 		return wrkfiles
 	
 	def _read_tasks_file(self,wrkfile):
@@ -50,32 +90,69 @@ class clientScheduler():
 		if os.path.isfile(wrkfile):
 			try:
 				tasks=json.loads(open(wrkfile).read())
-			except :
+			except Exception as e:
+				print(e)
 				self.errormsg=(("unable to open %s") % wrkfile)
 				self.status=1
 				self._debug(self.errormsg)
 		return(tasks)
 	#def _read_tasks_file
 
-	def write_tasks(self,tasks):
-		for task in tasks:
-			if task:
-				self._process_task(task)
+	def _sanitize_fields(self,tasks):
+		for name,data in tasks.items():
+			self._debug("Sanitize %s %s"%(name,data))
+			for serial in data.keys():
+				if tasks[name][serial]['dow']!='*':
+					tasks[name][serial]['dom']='*'
+		return tasks
+
+	def write_tasks(self,tasks,taskFilter):
+		if taskFilter=='remote':
+			self._write_server_tasks(tasks)
+		else:
+			self._write_local_tasks(tasks)
 	#def write_tasks
 
-	def _process_task(self,task):
-		self._debug("Writing task info")
-		for taskDesc,taskCmd in task.items():
-			f=open(self.wrkdir+'/'+taskDesc,'w')
-			for cmd,values in taskCmd.items():
-				if values['enabled']=="1":
-					values['m']=self._format_value(values['m'])
-					values['h']=self._format_value(values['h'])
-					values['dom']=self._format_value(values['dom'])
-					values['mon']=self._format_value(values['mon'])
-					line=(values['m']+' '+values['h']+' '+values['dom']+' '+values['mon']+' '+values['dow']+' '+cmd+'\n')
-					f.write(line)
-			f.close()
+	def _write_local_tasks(self,tasks):
+		self._debug("Writing local task info")
+		self._debug(tasks)
+		task_name=list(tasks.keys())[0]
+		task_serial=list(tasks[task_name].keys())[0]
+		print("SERIAL: %s" % task_serial)
+		self._debug(tasks)
+		serialized_task={}
+		sched_tasks={}
+		if not os.path.isdir(self.localTasksDir):
+			os.makedirs(self.localTasksDir)
+
+		wrkfile=self.localTasksDir+'/'+task_name
+		wrkfile=wrkfile.replace(' ','_')
+		if os.path.isfile(wrkfile):
+			sched_tasks=json.loads(open(wrkfile).read())
+			serial=len(sched_tasks[task_name])
+			if task_serial in sched_tasks[task_name].keys():
+				self._debug("Modify item %s" % serial)
+				sched_tasks[task_name][task_serial]=tasks[task_name][task_serial]
+				print(sched_tasks)
+				#Modify
+			else:
+				#Add
+				self._debug("Add item %s" % serial)
+				serialized_data={}
+				serialized_data[serial+1]=tasks[task_name][task_serial]
+				sched_tasks[task_name].update(serialized_data)
+		else:
+			self._debug("Add new item 1 to %s"%wrkfile)
+			tasks[task_name]={1:tasks[task_name]}
+			sched_tasks=tasks.copy()
+		with open(wrkfile,'w') as json_data:
+			json.dump(sched_tasks,json_data,indent=4,sort_keys=True)
+		self._debug("%s updated" % task_name)
+
+	def _write_server_tasks(self,tasks):
+		self._debug("Sending task info to server")
+		tasks=self.n4dclient.write_tasks("","ServerScheduler",tasks)
+		return True
 
 	def _format_value(self,value):
 		if len(value)<2 and (value!='*' and value!=0):
@@ -84,11 +161,11 @@ class clientScheduler():
 	
 	def _remove_task(self,task):
 		self._debug("Removing task from system")
-		for taskDesc in task.keys():
+		for task_name in task.keys():
 			try:
-				os.remove(self.wrkdir+'/'+taskDesc)
+				os.remove(self.wrkdir+'/'+task_name)
 			except exception as e:
-				print("Error removing %s" % taskDesc)
+				print("Error removing %s" % task_name)
 		return True
 
 	def _n4d_connect(self):
