@@ -33,11 +33,10 @@ class TaskDetails:
 	
 	def __init__(self,scheduler):
 		self.scheduler=scheduler
-		self.task_serial=0
+		self.task_serial="0"
 
 	def _format_widget_for_grid(self,widget):
 		#common
-		print(str(type(widget)))
 		widget.set_hexpand(False)
 		widget.set_halign(Gtk.Align.CENTER)
 		widget.set_valign(Gtk.Align.CENTER)
@@ -361,14 +360,9 @@ class TaskDetails:
 				if units==_("month(s)"):
 					task_details['mon']="1/"+interval
 		task_details['hidden']=0
-		print(parser.parse_taskData(task_details))
 		self.lbl_info.set_text("Task schedule: "+(parser.parse_taskData(task_details)))
 
 	def load_basic_task_details(self,task_name,task_serial,task_data):
-		print("T_load: "+task_name)
-		print("C_load: "+task_serial)
-		print(task_data)
-		print("****")
 		self.task_name=task_name
 		self.task_serial=task_serial
 		self.task_cmd=task_data['cmd']
@@ -413,10 +407,6 @@ class TaskDetails:
 				self.day_box.set_sensitive(False)
 				self.hour_box.set_sensitive(True)
 
-#		else:
-#			self.txt_day.set_text('0')
-#			self.chk_daily.set_active(True)
-
 		if task_data['mon'].isdigit():
 			self.cmb_months.set_active(int(task_data['mon']))
 			sw_fixed_mon=True
@@ -428,8 +418,6 @@ class TaskDetails:
 				self.cmb_dates.set_active(3)
 				self.month_box.set_sensitive(False)
 				self.hour_box.set_sensitive(True)
-#			self.txt_month.set_text('0')
-#			self.chk_monthly.set_active(True)
 
 		if sw_fixed_mon and sw_fixed_dom:
 			self.chk_fixed_date.set_active(True)
@@ -581,8 +569,6 @@ class TaskDetails:
 				details['mon']="1/"+self.cmb_interval.get_active_text()
 		task={}
 		details['cmd']=self.task_cmd
-		if not self.task_serial:
-			self.task_serial=0
 		task[self.task_name]={self.task_serial:details}
 		return task
 
@@ -594,7 +580,6 @@ class TaskScheduler:
 	#def __init__		
 
 	def isscheduler_running(self):
-
 		if os.path.exists(LOCK_PATH):
 			dialog = Gtk.MessageDialog(None,0,Gtk.MessageType.ERROR, Gtk.ButtonsType.CANCEL, "Task Scheduler")
 			dialog.format_secondary_text(_("There's another instance of Task Scheduler running."))
@@ -602,7 +587,6 @@ class TaskScheduler:
 			sys.exit(1)
 
 	def check_root(self):
-		
 		try:
 			print ("  [taskScheduler]: Checking root")
 			f=open("/etc/scheduler/scheduler.token","w")
@@ -613,7 +597,6 @@ class TaskScheduler:
 			dialog.format_secondary_text(_("You need administration privileges to run this application."))
 			dialog.run()
 			sys.exit(1)
-		
 	#def check_root
 
 	def start_gui(self):
@@ -679,6 +662,7 @@ class TaskScheduler:
 
 		column=Gtk.TreeViewColumn(_("Remove"))
 		cell=Gtk.CellRendererPixbuf()
+		cell.set_property('cell_background','red')
 		column.pack_start(cell,True)
 		column.add_attribute(cell,"pixbuf",3)
 		self.col_remove=column
@@ -828,8 +812,8 @@ class TaskScheduler:
 		"""
 
 		self.style_provider=Gtk.CssProvider()
-#		self.style_provider.load_from_data(css)
-#		Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),self.style_provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+		self.style_provider.load_from_data(css)
+		Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),self.style_provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 		
 		self.window.set_name("WHITE_BACKGROUND")
 		self.scheduler_box.set_name("WHITE_BACKGROUND")
@@ -844,6 +828,7 @@ class TaskScheduler:
 		self.tasks_store.clear()
 		
 		for task in tasks:
+			print(task)
 			for task_name,task_serialized in task.items():
 				self.scheduled_tasks[task_name]=task_serialized
 				for serial,task in task_serialized.items():
@@ -871,28 +856,13 @@ class TaskScheduler:
 			task_serial=model[data][1].split('\n')[0]
 			task_cmd=task_data[0][task_data[0].find("<b>")+3:task_data[0].find("</b>")]
 			task_name=task_data[1][task_data[1].find("<i>")+3:task_data[1].find("</i>")]
-			print("****")
-			print(task_serial)
-			print("****")
 			task_serial=model[data][1]
 			if task_name in self.scheduled_tasks.keys():
 				if task_serial in self.scheduled_tasks[task_name].keys():
 						#					task_data=self.scheduled_tasks[task_name][task_cmd]
 					task_data=self.scheduled_tasks[task_name][task_serial]
 					print("Loading details of task %s of group %s"% (task_serial,task_name))
-#			self.load_task_details(task_data)
-#					self.task_details_grid.load_task_details(task_data)
 					self.task_details_grid.load_basic_task_details(task_name,task_serial,task_data)
-#			if self.btn_signal_id:
-#				self.task_details_grid.btn_apply.disconnect(self.btn_signal_id)
-#			self.btn_signal_id=self.task_details_grid.btn_apply.connect("clicked",self.task_details_grid.put_task_details,task_name,task_cmd,taskFilter)
-
-#			if taskFilter=='remote':
-#				self.btn_remote_tasks.set_active(False)
-#				self.btn_remote_tasks.set_active(True)
-#			else:
-#				self.btn_local_task.set_active(False)
-#				self.btn_local_task.set_active(True)
 		else:
 			model.remove(data)
 	#def task_clicked			
@@ -901,9 +871,6 @@ class TaskScheduler:
 		task_name=self.cmb_task_names.get_active_text()
 		task_cmd=self.cmb_task_cmds.get_active_text()
 		task=self.add_task_grid.get_task_details(None,task_name,None,task_cmd)
-		print("****")
-		print(task)
-		print("****")
 
 		taskFilter='local'
 		print("Writing task info...")
@@ -911,6 +878,7 @@ class TaskScheduler:
 			taskFilter='remote'
 		self.scheduler_client.write_tasks(task,taskFilter)
 		return()
+	#def save_task_details
 
 	def view_tasks_clicked(self,widget,parm):
 		if not widget.get_active():
@@ -946,6 +914,7 @@ class TaskScheduler:
 			self.swt_local.set_active(1)
 			self.swt_remote.set_active(0)
 		self.btn_add_task.connect("clicked",self.save_task_details)
+	#def load_add_task_details
 
 	def load_add_task_details_cmds(self,widget,tasks):
 		cmds=[]
@@ -957,18 +926,18 @@ class TaskScheduler:
 					cmds.append(cmd)
 					self.cmb_task_cmds.append_text(cmd)
 		self.cmb_task_cmds.set_active(0)
+	#def load_add_task_details_cmds
 	
 	def add_task_clicked(self,widget,event):
 		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
 		self.stack.set_visible_child_name("add")
 		self.load_add_task_details()
-	#def view_packages_clicked	
+	#def add_task_clicked	
 
 	def cancel_add_clicked(self,widget,event):
 		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_RIGHT)
 		self.stack.set_visible_child_name("tasks")	
-		
-	#def arrow_clicked
+	#def cancel_add_clicked
 
 	def quit(self,widget,event=None):
 		Gtk.main_quit()	

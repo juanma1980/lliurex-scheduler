@@ -115,10 +115,8 @@ class clientScheduler():
 
 	def _write_local_tasks(self,tasks):
 		self._debug("Writing local task info")
-		self._debug(tasks)
 		task_name=list(tasks.keys())[0]
 		task_serial=list(tasks[task_name].keys())[0]
-		print("SERIAL: %s" % task_serial)
 		self._debug(tasks)
 		serialized_task={}
 		sched_tasks={}
@@ -133,7 +131,6 @@ class clientScheduler():
 			if task_serial in sched_tasks[task_name].keys():
 				self._debug("Modify item %s" % serial)
 				sched_tasks[task_name][task_serial]=tasks[task_name][task_serial]
-				print(sched_tasks)
 				#Modify
 			else:
 				#Add
@@ -143,14 +140,15 @@ class clientScheduler():
 				sched_tasks[task_name].update(serialized_data)
 		else:
 			self._debug("Add new item 1 to %s"%wrkfile)
-			tasks[task_name]={1:tasks[task_name]}
+			tasks[task_name]={"1":tasks[task_name]["0"]}
 			sched_tasks=tasks.copy()
 		with open(wrkfile,'w') as json_data:
-			json.dump(sched_tasks,json_data,indent=4,sort_keys=True)
+			json.dump(sched_tasks,json_data,indent=4)
 		self._debug("%s updated" % task_name)
 
 	def _write_server_tasks(self,tasks):
 		self._debug("Sending task info to server")
+		print(tasks)
 		tasks=self.n4dclient.write_tasks("","ServerScheduler",tasks)
 		return True
 
