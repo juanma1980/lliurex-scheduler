@@ -2,6 +2,6 @@
 from clientScheduler import clientScheduler as scheduler
 
 s=scheduler()
-a=s.get_tasks('remote')
+a=s.get_scheduled_tasks('remote')
 #s.write_tasks(a)
 print(a)

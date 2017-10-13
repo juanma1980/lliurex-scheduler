@@ -25,9 +25,9 @@ class ServerScheduler():
 			print("Scheduler: %s" % msg)
 	#def _debug
 
-	def get_tasks(self,taskFilter):
+	def get_tasks(self):
 		scheduled_tasks=[]
-		wrkfiles=self._get_wrkfiles(taskFilter)
+		wrkfiles=self._get_wrkfiles()
 		for wrkfile in wrkfiles:
 			scheduled_tasks.append(self._read_tasks_file(wrkfile))
 		self._debug("Tasks loaded")
@@ -35,13 +35,13 @@ class ServerScheduler():
 		return(scheduled_tasks)
 	#def get_tasks
 
-	def _get_wrkfiles(self,taskFilter):
+	def _get_wrkfiles(self):
 		if not os.path.isdir(self.remote_tasks_dir):
 			os.makedirs(self.remote_tasks_dir)
 
 		wrkfiles=[]
-		for f in os.listdir(wrkdir):
-			wrkfiles.append(self.remote_tasks_dir+'/'+wrkdir)
+		for f in os.listdir(self.remote_tasks_dir):
+			wrkfiles.append(self.remote_tasks_dir+'/'+f)
 		return wrkfiles
 
 	def _read_tasks_file(self,wrkfile):
@@ -56,29 +56,6 @@ class ServerScheduler():
 				self._debug(self.errormsg)
 		return(tasks)
 	#def _read_tasks_file
-
-	def _read_crontab(self):
-		wrkfiles=os.listdir(self.crondir)
-		cronfiles=[]
-		crontasks=[]
-		for wrkfile in wrkfiles:
-			if wrkfile.startswith(self.cronPrefix):
-				cronfiles.append(wrkfile)
-		scheduled_tasks={}
-		for cronfile in cronfiles:
-			scheduled_tasks[cronfile]={}
-			with open(self.crondir+'/'+cronfile) as f:
-				for line in f:
-					lstLine=line.split()
-					m=lstLine[0]
-					h=lstLine[1]
-					mon=lstLine[2]
-					dom=lstLine[3]
-					dow=lstLine[4]
-					user=lstLine[5]
-					scheduled_tasks[cronfile][" ".join(lstLine[6:])]=" ".join(lstLine[:5])
-		return scheduled_tasks
-	#def _read_crontab	
 
 	def write_tasks(self,tasks):
 		self._debug("Writing remote task info")

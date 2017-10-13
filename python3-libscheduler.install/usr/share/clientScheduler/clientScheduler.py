@@ -21,10 +21,11 @@ class clientScheduler():
 			self.sw_n4d=0
 		else:
 			self.n4dclient=self._n4d_connect()
-		self.taskDir="/etc/scheduler/tasks.d"
-		self.schedTasksDir=self.taskDir+"/scheduled"
-		self.localTasksDir=self.schedTasksDir+"/local"
-		self.wrkfile="/home/lliurex/borrar/ltasks.json"
+		self.tasks_dir="/etc/scheduler/tasks.d"
+		self.sched_tasks_dir=self.tasks_dir+"/scheduled"
+		self.local_tasks_dir=self.sched_tasks_dir+"/local"
+		self.cron_dir="/etc/cron.d"
+		self.task_prefix="sched-" #If n4d it's available then prefix must be the one defined in n4d
 	#def __init__
 
 	def _debug(self,msg):
@@ -47,18 +48,18 @@ class clientScheduler():
 		self._debug("Connecting to N4d")
 		if taskFilter=='remote':
 			if self.sw_n4d:
-				tasks=self._get_server_tasks()
+				tasks=self._get_remote_tasks()
 		else:
 			tasks=self._get_local_tasks()
 		return tasks
 
-	def _get_server_tasks(self):
+	def _get_remote_tasks(self):
 		tasks=[]
 		self._debug("Retrieving task list")
-		tasks=self.n4dclient.get_tasks("","ServerScheduler",'remote')
-#		self._debug(str(tasks))
+		tasks=self.n4dclient.get_tasks("","ServerScheduler")
+		self._debug(str(tasks))
 		return tasks
-	#def _get_server_tasks
+	#def _get_remote_tasks
 
 	def _get_local_tasks(self):
 		tasks=[]
@@ -70,18 +71,16 @@ class clientScheduler():
 		return tasks
 	#def _get_local_tasks
 
-	def _get_wrkfiles(self,type=None):
-		if type=='available':
-			wrkDir=self.taskDir
+	def _get_wrkfiles(self,task_type=None):
+		if task_type=='available':
+			wrkdir=self.tasks_dir
 		else:
-			wrkDir=self.localTasksDir
+			wrkdir=self.local_tasks_dir
 		wrkfiles=[]
-		self._debug("Opening %s"%wrkDir)
-		if os.path.isdir(wrkDir):
-			for f in os.listdir(wrkDir):
-				wrkfiles.append(wrkDir+'/'+f)
-		else:
-			wrkfiles.append(self.wrkfile)
+		self._debug("Opening %s"%wrkdir)
+		if os.path.isdir(wrkdir):
+			for f in os.listdir(wrkdir):
+				wrkfiles.append(wrkdir+'/'+f)
 		return wrkfiles
 	
 	def _read_tasks_file(self,wrkfile):
@@ -120,10 +119,10 @@ class clientScheduler():
 		self._debug(tasks)
 		serialized_task={}
 		sched_tasks={}
-		if not os.path.isdir(self.localTasksDir):
-			os.makedirs(self.localTasksDir)
+		if not os.path.isdir(self.local_tasks_dir):
+			os.makedirs(self.local_tasks_dir)
 
-		wrkfile=self.localTasksDir+'/'+task_name
+		wrkfile=self.local_tasks_dir+'/'+task_name
 		wrkfile=wrkfile.replace(' ','_')
 		if os.path.isfile(wrkfile):
 			sched_tasks=json.loads(open(wrkfile).read())
@@ -144,31 +143,100 @@ class clientScheduler():
 			sched_tasks=tasks.copy()
 		with open(wrkfile,'w') as json_data:
 			json.dump(sched_tasks,json_data,indent=4)
+		self._send_tasks_to_crontab()
 		self._debug("%s updated" % task_name)
 
 	def _write_server_tasks(self,tasks):
 		self._debug("Sending task info to server")
-		print(tasks)
 		tasks=self.n4dclient.write_tasks("","ServerScheduler",tasks)
 		return True
 
-	def _format_value(self,value):
-		if len(value)<2 and (value!='*' and value!=0):
-			value='0'+value
-		return value
-	
-	def _remove_task(self,task):
+	def remove_task(self,task_name,task_serial,task_cmd,filter_tasks):
+		if filter_tasks=='remote':
+			self._remove_remote_task(task_name,task_serial,task_cmd)
+		else:
+			self._remove_local_task(task_name,task_serial,task_cmd)
+
+	def _remove_local_task(self,task_name,task_serial,task_cmd):
 		self._debug("Removing task from system")
-		for task_name in task.keys():
-			try:
-				os.remove(self.wrkdir+'/'+task_name)
-			except exception as e:
-				print("Error removing %s" % task_name)
+		sw_del=False
+		wrkfile=self.local_tasks_dir+'/'+task_name
+		wrkfile=wrkfile.replace(' ','_')
+		task=self._read_tasks_file(wrkfile)
+		if task_name in task.keys():
+			if task_serial in task[task_name].keys():
+				del task[task_name][task_serial]
+				sw_del=True
+
+		if sw_del:
+			task=self._serialize_task(task)
+			with open(wrkfile,'w') as json_data:
+				json.dump(task,json_data,indent=4)
+			self._send_tasks_to_crontab()
 		return True
+
+	def _serialize_task(self,task):
+		serial_task={}
+		for name,task_data in task.items():
+			print("PROCESSING %s"%name)
+			cont=0
+			serial_task[name]={}
+			for serial,data in task_data.items():
+				print("SERIAL: %s"%serial)
+				serial_task[name].update({cont+1:data})
+				cont+=1
+		return(serial_task)
+
+	def _remove_remote_task(self,task_name,task_serial,task_cmd):
+		self._debug("Removing task from server")
+		tasks=self.n4dclient.remove_tasks("","ServerScheduler",task_name,task_serial,task_cmd)
+	#def _remove_remote_task
+
+	def _send_tasks_to_crontab(self):
+		self._debug("Scheduling tasks")
+		#Get scheduled tasks
+		tasks=self._get_local_tasks()
+		#Create a dict with the task names
+		task_names={}
+		for task in tasks:
+			for name in task.keys():
+				self._debug("Scheduling %s"%name)
+				self._debug("%s"%task)
+				fname=name.replace(' ','_')
+				task_names[fname]=task
+				self._debug("%s"%task_names)
+				self._write_crontab_for_task(task_names[fname])
+
+		for f in os.listdir(self.cron_dir):
+			if f.startswith(self.task_prefix):
+				fname=f.replace(self.task_prefix,'')
+				if fname not in task_names.keys():
+					self._debug("Removing %s"%f)
+					self._debug("%s"%task_names)
+					#Task is not scheduled, delete it
+					os.remove(self.cron_dir+'/'+f)
+
+	#def _send_tasks_to_crontab
+
+	def _write_crontab_for_task(self,ftask):
+		task=list(ftask.keys())[0]
+		for task_name,task_data in ftask.items():
+			fname=self.cron_dir+'/'+self.task_prefix+task_name.replace(' ','_')
+			cron_array=[]
+			self._debug("Sending %s" %task_name)
+			self._debug("Data %s"%task_data)
+			for task_serial,task_info in task_data.items():
+				cron_task=("%s %s %s %s %s %s"%(task_info['m'],task_info['h'],task_info['dom'],task_info['mon'],\
+							task_info['dow'],task_info['cmd']))
+
+				cron_array.append(cron_task)
+			with open(fname,'w') as data:
+				for cron_line in cron_array:
+					data.write(cron_line+"\n")
 
 	def _n4d_connect(self):
 		#Setup SSL
 		context=ssl._create_unverified_context()
-		n4dclient = n4d.ServerProxy("https://server:9779",context=context)
+		n4dclient = n4d.ServerProxy("https://server:9779",context=context,allow_none=True)
 		return(n4dclient)
 	#def _n4d_connect
