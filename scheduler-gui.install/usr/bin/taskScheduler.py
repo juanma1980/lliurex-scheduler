@@ -14,7 +14,7 @@ import time
 #import commands
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject, GLib, PangoCairo, Pango
 
-from clientScheduler import clientScheduler as scheduler
+from libscheduler import Scheduler as scheduler
 from cronParser import cronParser
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -56,33 +56,24 @@ class TaskDetails:
 		total=24
 		if date==_("day(s)"):
 			total=7
-			self._set_sensitive_widget({self.day_box:False,self.month_box:True,self.hour_box:True})
-			self._activate_days(False)
 		elif date==_("hour(s)"):
 			total=24
-			self._set_sensitive_widget({self.day_box:True,self.month_box:True,self.hour_box:False})
-			self._activate_days(True)
 		elif date==_("week(s)"):
 			total=4
-			self._set_sensitive_widget({self.day_box:False,self.month_box:True,self.hour_box:True})
-			self._activate_days(False)
 		elif date==_("month(s)"):
 			total=12
-			self._set_sensitive_widget({self.day_box:True,self.month_box:False,self.hour_box:True})
-			self._activate_days(True)
 		for i in range(total):
 			self.cmb_interval.append_text(str(i+1))
+
+		#Set sensitive status
+		self._changed_interval()
 		#If user changes selection try to activate same value on new interval data or max
 		if position>=total:
 			position=total-1
 		elif position<0:
 			position=0
 		self.cmb_interval.set_active(position)
-
-	def _set_sensitive_widget(self,widget_dic):
-		for widget,status in widget_dic.items():
-			widget.set_sensitive(status)
-
+	
 	def _load_date_data(self):
 		date=[_("hour(s)"),_("day(s)"),_("week(s)"),_("month(s)")]
 		for i in date:
@@ -95,29 +86,37 @@ class TaskDetails:
 			self.cmb_special_dates.append_text(i)
 		self.cmb_special_dates.set_active(0)
 
-	def _load_hours_data(self):
-		for i in range(24):
-			self.cmb_hours.append_text(str(i))
-		self.cmb_hours.set_active(0)
+	def _load_date_time_data(self,date_type):
+		inc=0
+		jump=0
+		time_units=0
+		if date_type=='hour':
+			time_units=24
+			widget=self.cmb_hours
+		elif date_type=='minute':
+			time_units=60
+			jump=5
+			widget=self.cmb_minutes
+		elif date_type=='month':
+			widget=self.cmb_months
+			widget.append_text("Every month")
+			inc=1
+			time_units=12
+		elif date_type=='day':
+			widget=self.cmb_days
+			widget.append_text("Every day")
+			inc=1
+			time_units=31
 
-	def _load_minutes_data(self):
-		for i in range(0,60,5):
-			self.cmb_minutes.append_text(str(i))
-		self.cmb_minutes.set_active(0)
+		for i in range(time_units):
+			if jump:
+				if (not i%jump):
+					widget.append_text(str(i+inc))
+			else:
+				widget.append_text(str(i+inc))
+		widget.set_active(0)
 
-	def _load_months_data(self):
-		self.cmb_months.append_text("Every month")
-		for i in range(12):
-			self.cmb_months.append_text(str(i+1))
-		self.cmb_months.set_active(0)
-	
-	def _load_days_data(self,max=31):
-		self.cmb_days.append_text("Everyday")
-		for i in range(max):
-			self.cmb_days.append_text(str(i+1))
-		self.cmb_days.set_active(0)
-
-	def render_basic(self,gtkGrid,btn_apply=True):
+	def render_form(self,gtkGrid,btn_apply=True):
 		self.chk_monday=Gtk.ToggleButton(_("Monday"))
 		self.chk_thursday=Gtk.ToggleButton(_("Thursday"))
 		self.chk_wednesday=Gtk.ToggleButton(_("Wednesday"))
@@ -136,7 +135,6 @@ class TaskDetails:
 		self.chk_special_dates=Gtk.CheckButton("Special cases")
 		self.cmb_special_dates=Gtk.ComboBoxText()
 		self._load_special_date_data()
-		self.chk_fixed_date=Gtk.CheckButton("Fixed date")
 		self.day_box=Gtk.Box()
 		self.day_box.set_homogeneous(True)
 		self.cmb_days=Gtk.ComboBoxText()
@@ -164,7 +162,6 @@ class TaskDetails:
 		gtkGrid.attach(self.lbl_info,0,0,8,2)
 		dow_frame=Gtk.Frame()
 		dow_frame.set_shadow_type(Gtk.ShadowType.OUT)
-#		gtkGrid.attach(label,0,2,2,1)
 		frame_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
 		dow_frame.add(frame_box)
 		label=Gtk.Label(_("Days of week"))
@@ -188,8 +185,6 @@ class TaskDetails:
 		gtkGrid.attach(label,2,2,2,1)
 		gtkGrid.attach_next_to(self.hour_box,label,Gtk.PositionType.BOTTOM,1,1)
 		gtkGrid.attach_next_to(self.minute_box,self.hour_box,Gtk.PositionType.BOTTOM,1,1)
-#		gtkGrid.attach_next_to(self.chk_fixed_date,self.minute_box,Gtk.PositionType.BOTTOM,1,1)
-#		gtkGrid.attach_next_to(self.month_box,self.chk_fixed_date,Gtk.PositionType.BOTTOM,1,1)
 		gtkGrid.attach_next_to(self.month_box,self.minute_box,Gtk.PositionType.BOTTOM,1,1)
 		gtkGrid.attach_next_to(self.day_box,self.month_box,Gtk.PositionType.BOTTOM,1,1)
 		label=Gtk.Label(_("Time intervals"))
@@ -208,13 +203,12 @@ class TaskDetails:
 			gtkGrid.attach(self.btn_apply,5,15,1,1)
 			self.btn_apply.connect("clicked",self.update_task_details)
 		#Add data to combos
-		self._load_minutes_data()
-		self._load_hours_data()
-		self._load_days_data()
-		self._load_months_data()
+		self._load_date_time_data('minute')
+		self._load_date_time_data('hour')
+		self._load_date_time_data('day')
+		self._load_date_time_data('month')
 		#Signals
 		gtkGrid.connect("event",self._parse_scheduled)
-		self.chk_fixed_date.connect("toggled",self._chk_fixed_dates_status)
 		self.chk_monday.connect("toggled",self._enable_fixed_dates)
 		self.chk_thursday.connect("toggled",self._enable_fixed_dates)
 		self.chk_wednesday.connect("toggled",self._enable_fixed_dates)
@@ -226,60 +220,124 @@ class TaskDetails:
 		self.chk_special_dates.connect("toggled",self._chk_special_dates_status)
 		#handled signals
 		self.cmb_dates.connect("changed",self._load_interval_data)
-		self.cmb_minutes.connect("changed",self._parse_scheduled)
-		self.cmb_hours.connect("changed",self._parse_scheduled)
-		self.cmb_months.connect("changed",self._parse_scheduled)
-		self.cmb_days.connect("changed",self._parse_scheduled)
-		self.cmb_interval.connect("changed",self._parse_scheduled)
 
 		#Initial control status
 		self.interval_box.set_sensitive(False)
 		self.cmb_special_dates.set_sensitive(False)
-#		self.day_box.set_sensitive(False)
-#		self.month_box.set_sensitive(False)
 		return gtkGrid
+
+	def load_task_details(self,task_name,task_serial,task_data,task_type):
+		self._clear_screen()
+		self.task_name=task_name
+		self.task_serial=task_serial
+		self.task_cmd=task_data['cmd']
+		self.task_type=task_type
+		if task_data['m'].isdigit():
+			cursor=0
+			for minute in range(0,60,5):
+				if minute>int(task_data['m']):
+					break
+				cursor+=1
+			self.cmb_minutes.set_active(cursor-1)
+		else:
+			self.cmb_minutes.set_active(0)
+
+		self._parse_date_details(task_data['h'],self.cmb_hours,'hour')
+		self._parse_date_details(task_data['dom'],self.cmb_days,'dom')
+		self._parse_date_details(task_data['mon'],self.cmb_months,'mon')
+		widget_dict={'0':self.chk_sunday,'1':self.chk_monday,'2':self.chk_tuesday,\
+					'3':self.chk_wednesday,'4':self.chk_thursday,'5':self.chk_friday,\
+					'6':self.chk_saturday,'7':self.chk_sunday}
+		self._parse_date_details(task_data['dow'],None,'dow',widget_dict)
+	#def load_task_details
+
+	def _parse_date_details(self,date,widget=None,date_type=None,widget_dict=None):
+		if date.isdigit() and widget:
+			widget.set_active(int(date))
+		elif '/' in date:
+			pos=date.split('/')
+			self.chk_interval.set_active(True)
+			self.cmb_interval.set_active(int(pos[1])-1)
+			if date_type=='hour':
+				self.cmb_dates.set_active(0)
+				self.hour_box.set_sensitive(False)
+			elif date_type=='dom':
+				self.cmb_dates.set_active(1)
+				self.day_box.set_sensitive(False)
+				self.hour_box.set_sensitive(True)
+			elif date_type=='mon':
+				self.cmb_interval.set_active(int(pos[1]))
+				self.cmb_dates.set_active(3)
+				self.month_box.set_sensitive(False)
+				self.hour_box.set_sensitive(True)
+		elif widget_dict:
+			array_date=[]
+			if ',' in date:
+				array_date=date.split(',')
+			else:
+				array_date.append(date)
+
+			for selected_date in array_date:
+				if selected_date.isdigit():
+					widget_dict[selected_date].set_active(True)
+	#def _parse_date_details
+
+	def _clear_screen(self):
+		widgets=[self.chk_monday,self.chk_thursday,self.chk_wednesday,self.chk_tuesday,\
+				self.chk_friday,self.chk_saturday,self.chk_sunday]
+		for widget in widgets:
+			widget.set_active(False)
+		self.cmb_hours.set_active(0)
+		self.cmb_minutes.set_active(0)
+		self.cmb_days.set_active(0)
+		self.cmb_months.set_active(0)
+		self.cmb_interval.set_active(0)
+		self.cmb_dates.set_active(0)
+		self.chk_special_dates.set_active(False)
+		self.chk_interval.set_active(False)
+	
+	def _set_sensitive_widget(self,widget_dic):
+		for widget,status in widget_dic.items():
+			widget.set_sensitive(status)
+	
+	def _changed_interval(self):
+		if self.chk_interval.get_active():
+			interval=self.cmb_dates.get_active_text()
+			if interval=='hour(s)':
+				self._set_sensitive_widget({self.day_box:not self._get_days_active(),\
+						self.month_box:True,self.hour_box:False})
+				self._set_days_sensitive(True)
+			elif interval=='day(s)' or interval=='week(s)':
+				self._set_sensitive_widget({self.day_box:False,self.month_box:True,self.hour_box:True})
+				self._set_days_sensitive(False)
+			elif interval=='month(s)':
+				self._set_sensitive_widget({self.day_box:not self._get_days_active(),\
+						self.month_box:False,self.hour_box:True})
+				self._set_days_sensitive(True)
+	#def _changed_interval
+
 
 	def _chk_interval_status(self,widget):
 		if self.chk_interval.get_active():
-			self.chk_fixed_date.set_active(False)
-			self.interval_box.set_sensitive(True)
-			self.chk_special_dates.set_sensitive(True)
-			self.hour_box.set_sensitive(False)
-			self.month_box.set_sensitive(True)
-			self.day_box.set_sensitive(not self._get_days_active())
+			self._set_sensitive_widget({self.interval_box:True,self.cmb_special_dates:False,\
+				self.hour_box:False,self.month_box:True,self.day_box:not self._get_days_active()})
+			self._changed_interval()
 		else:
-			self.interval_box.set_sensitive(False)
-#			if not self.chk_fixed_date.get_active():
-#				self.month_box.set_sensitive(False)
-#				self.day_box.set_sensitive(False)
-			self.month_box.set_sensitive(True)
-			self.day_box.set_sensitive(not self._get_days_active())
-			self.hour_box.set_sensitive(True)
-			self.minute_box.set_sensitive(True)
+			self._set_sensitive_widget({self.interval_box:False,self.cmb_special_dates:True,\
+				self.hour_box:True,self.month_box:True,self.day_box:not self._get_days_active()})
+			self._chk_special_dates_status()
 	#def _chk_interval_status
 			
-	def _chk_fixed_dates_status(self,widget):
-		if widget==self.chk_interval:
-			return True
-		if self.chk_fixed_date.get_active():
-			self.day_box.set_sensitive(not self._get_days_active())
-			self.month_box.set_sensitive(True)
-			self.chk_interval.set_active(False)
-			self.chk_special_dates.set_active(False)
-			self.chk_interval.set_active(False)
-		else:
-			self.day_box.set_sensitive(False)
-			self.month_box.set_sensitive(False)
-	#def _chk_interval_status
-
-	def _chk_special_dates_status(self,widget):
+	def _chk_special_dates_status(self,widget=None):
 		if self.chk_special_dates.get_active():
-			self.cmb_special_dates.set_sensitive(True)
-			self._activate_days(False)
+			self._set_sensitive_widget({self.cmb_special_dates:True,self.day_box:False,\
+				self.chk_interval:False})
+			self._set_days_sensitive(False)
 		else:
-			self.cmb_special_dates.set_sensitive(False)
-			self._activate_days(True)
-	#def _chk_interval_status
+			self._set_sensitive_widget({self.cmb_special_dates:False,self.chk_interval:True,\
+				self.day_box:not self._get_days_active()})
+			self._set_days_sensitive(True)
+	#def _chk_special_dates_status
 
 	def _get_days_active(self):
 		sw_active=False
@@ -295,6 +353,7 @@ class TaskDetails:
 				sw_active=True
 				break
 		return sw_active
+	#def _get_days_active
 
 	def _enable_fixed_dates(self,widget):
 		sw_enable=True
@@ -312,8 +371,9 @@ class TaskDetails:
 			else:
 				self.day_box.set_sensitive(True)
 				self.month_box.set_sensitive(True)
+	#def _enable_fixed_dates
 
-	def _activate_days(self,state):
+	def _set_days_sensitive(self,state):
 		widgets=[self.chk_monday,
 				self.chk_thursday,
 				self.chk_wednesday,
@@ -323,225 +383,13 @@ class TaskDetails:
 				self.chk_sunday]
 		for widget in widgets:
 			widget.set_sensitive(state)
+	#def _set_days_sensitive
 
-	def _put_info(self):
-			return True
-
-	def _parse_scheduled(self,container,widget=None):
-		task_details={}
-		parser=cronParser()
-		dow=''
-		widgets=[self.chk_monday,
-			self.chk_thursday,
-			self.chk_wednesday,
-			self.chk_tuesday,
-			self.chk_friday,
-			self.chk_saturday,
-			self.chk_sunday]
-		cont=1
-		for day_widget in widgets:
-			if day_widget.get_active():
-				dow=dow+str(cont)+','
-			cont+=1
-		if dow:
-			dow=dow.rstrip(',')
-		else:
-			dow='*'
-		task_details['dow']=dow
-		if self.cmb_months.is_sensitive():
-			task_details['mon']=self.cmb_months.get_active_text()
-		else:
-			task_details['mon']='*'
-		if self.cmb_days.is_sensitive():
-			task_details['dom']=self.cmb_days.get_active_text()
-		else:
-			task_details['dom']='*'
-		if self.cmb_hours.is_sensitive():
-			task_details['h']=self.cmb_hours.get_active_text()
-		else:
-			task_details['h']='*'
-		if self.cmb_minutes.is_sensitive():
-			task_details['m']=self.cmb_minutes.get_active_text()
-		else:
-			task_details['m']='0'
-
-		if self.chk_interval.get_active():
-			interval=self.cmb_interval.get_active_text()
-			if interval:
-				units=self.cmb_dates.get_active_text()
-				if units==_("hour(s)"):
-					task_details['h']+="/"+interval
-				if units==_("day(s)"):
-					task_details['dom']="1/"+interval
-				if units==_("month(s)"):
-					task_details['mon']="1/"+interval
-		task_details['hidden']=0
-		self.lbl_info.set_text("Task schedule: "+(parser.parse_taskData(task_details)))
-
-	def load_basic_task_details(self,task_name,task_serial,task_data):
-		self.task_name=task_name
-		self.task_serial=task_serial
-		self.task_cmd=task_data['cmd']
-		self.cmb_dates.emit_stop_by_name("changed")
-		self.cmb_minutes.emit_stop_by_name("changed")
-		self.cmb_hours.emit_stop_by_name("changed")
-		self.cmb_months.emit_stop_by_name("changed")
-		self.cmb_days.emit_stop_by_name("changed")
-		self.cmb_interval.emit_stop_by_name("changed")
-		self._clear_screen()
-		if task_data['m'].isdigit():
-			cursor=0
-			for minute in range(0,60,5):
-				if minute>int(task_data['m']):
-					break
-				cursor+=1
-			self.cmb_minutes.set_active(cursor-1)
-		else:
-			self.cmb_minutes.set_active(0)
-
-		if task_data['h'].isdigit():
-			self.cmb_hours.set_active(int(task_data['h']))
-		elif '/' in task_data['h']:
-			pos=task_data['h'].split('/')
-			self.chk_interval.set_active(True)
-			self.cmb_interval.set_active(int(pos[1])-1)
-			self.cmb_dates.set_active(0)
-			self.hour_box.set_sensitive(False)
-
-
-		sw_fixed_mon=False
-		sw_fixed_dom=False
-		if task_data['dom'].isdigit():
-			self.cmb_days.set_active(int(task_data['dom']))
-			sw_fixed_dom=True
-		else:
-			if '/' in task_data['dom']:
-				self.chk_interval.set_active(True)
-				pos=task_data.split('/')
-				self.cmb_interval.set_active(int(pos[1])-1)
-				self.cmb_dates.set_active(1)
-				self.day_box.set_sensitive(False)
-				self.hour_box.set_sensitive(True)
-
-		if task_data['mon'].isdigit():
-			self.cmb_months.set_active(int(task_data['mon']))
-			sw_fixed_mon=True
-		else:
-			if '/' in task_data['mon']:
-				self.chk_interval.set_active(True)
-				pos=task_data.split('/')
-				self.cmb_interval.set_active(pos[1])
-				self.cmb_dates.set_active(3)
-				self.month_box.set_sensitive(False)
-				self.hour_box.set_sensitive(True)
-
-		if sw_fixed_mon and sw_fixed_dom:
-			self.chk_fixed_date.set_active(True)
-
-		if task_data['dow'].isdigit():
-			array_dow=[task_data['dow']]
-		else:
-			array_dow=task_data['dow'].split(',')
-		for dow in array_dow:
-			if dow=="1":
-				self.chk_monday.set_active(True)
-				continue
-			if dow=="2":
-				self.chk_tuesday.set_active(True)
-				continue
-			if dow=="3":
-				self.chk_wednesday.set_active(True)
-				continue
-			if dow=="4":
-				self.chk_thursday.set_active(True)
-				continue
-			if dow=="5":
-				self.chk_friday.set_active(True)
-				continue
-			if dow=="6":
-				self.chk_saturday.set_active(True)
-				continue
-			if dow=="7":
-				self.chk_sunday.set_active(True)
-				continue
-#			self.chk_weekly.set_active(True)
-
-	def _set_screen_states(self):
-		if self_get_days_active():
-			self.chk_fixed_date.set_active(False)
-			self.cmb_months.set_sensitive(True)
-		if self._chk_fixed_date.get_active():
-			self.chk_interval.set_active(false)
-			self.cmb_dates.set_sensitive(False)
-			self.cmb_interval.set_sensitive(False)
-		if self._chk_interval.get_active():
-			self._chk_fixed_date.set_active(False)
-			if self.cmb_dates.get_active_text()==_("hour(s)"):
-				self.hour_box.set_sensitive(False)
-				self.day_box.set_sensitive(True)
-				self.month_box.set_sensitive(True)
-			if self.cmb_dates.get_active_text()==_("day(s)"):
-				self.hour_box.set_sensitive(True)
-				self.day_box.set_sensitive(False)
-				self.month_box.set_sensitive(True)
-			if self.cmb_dates.get_active_text()==_("week(s)"):
-				self.hour_box.set_sensitive(True)
-				self.day_box.set_sensitive(False)
-				self.month_box.set_sensitive(True)
-			if self.cmb_dates.get_active_text()==_("month(s)"):
-				self.hour_box.set_sensitive(True)
-				self.day_box.set_sensitive(True)
-				self.month_box.set_sensitive(False)
-		if self._chk_special_dates.get_active():	
-				self.day_box.set_sensitive(False)
-				self._activate_days(False)
-
-	def _clear_screen(self):
-		widgets=[self.chk_monday,
-				self.chk_thursday,
-				self.chk_wednesday,
-				self.chk_tuesday,
-				self.chk_friday,
-				self.chk_saturday,
-				self.chk_sunday]
-		for widget in widgets:
-			widget.set_active(False)
-		self.cmb_hours.set_active(0)
-		self.cmb_minutes.set_active(0)
-		self.cmb_days.set_active(0)
-		self.cmb_months.set_active(0)
-		self.cmb_interval.set_active(0)
-		self.cmb_dates.set_active(0)
-		self.chk_special_dates.set_active(False)
-		self.chk_interval.set_active(False)
-		self.chk_fixed_date.set_active(False)
-
-
-	def update_task_details(self,widget=None):
-		if self.task_name and self.task_serial:
-			task_data=self.get_task_details()
-			self.scheduler.write_tasks(task_data,self.task_type)
-		
-	#def update_task_details
-
-	def get_task_details(self,widget=None,task_name=None,task_serial=None,task_cmd=None,task_type=None):
+	def _parse_screen(self):
 		details={}
-		if task_name:
-			self.task_name=task_name
-		if task_serial:
-			self.task_serial=task_serial
-		if task_cmd:
-			self.task_cmd=task_cmd
-		if task_type:
-			self.task_type=task_type
 		dow=''
-		widgets=[self.chk_monday,
-				self.chk_thursday,
-				self.chk_wednesday,
-				self.chk_tuesday,
-				self.chk_friday,
-				self.chk_saturday,
-				self.chk_sunday]
+		widgets=[self.chk_monday,self.chk_thursday,	self.chk_wednesday,	self.chk_tuesday,\
+				self.chk_friday,self.chk_saturday,self.chk_sunday]
 		cont=1
 		for widget in widgets:
 			if widget.get_active():
@@ -552,28 +400,20 @@ class TaskDetails:
 		else:
 			dow='*'
 		details['dow']=dow
+		#Init date data
+		for i in ["h","m","mon","dom"]:
+			details[i]="*"
+		#load data
 		if self.cmb_hours.is_sensitive():
 			details["h"]=self.cmb_hours.get_active_text()
-		else:
-			details["h"]="*"
 		if self.cmb_minutes.is_sensitive():
 			details["m"]=self.cmb_minutes.get_active_text()
-		else:
-			details["m"]="*"
 		if self.cmb_months.is_sensitive():
 			if self.cmb_months.get_active_text().isdigit():
 				details["mon"]=self.cmb_months.get_active_text()
-			else:
-				details["mon"]="*"
-		else:
-			details["mon"]="*"
 		if self.cmb_days.is_sensitive():
 			if self.cmb_days.get_active_text().isdigit():
 				details["dom"]=self.cmb_days.get_active_text()
-			else:
-				details["dom"]="*"
-		else:
-			details["dom"]="*"
 
 		if self.cmb_dates.is_sensitive():
 			if self.cmb_dates.get_active_text()==_('hour(s)'):
@@ -582,11 +422,36 @@ class TaskDetails:
 				details['dom']="1/"+self.cmb_interval.get_active_text()
 			if self.cmb_dates.get_active_text()==_('week(s)'):
 				week=int(self.cmb_interval.get_active_text())*7
-				details['dom']="1/"+str(weeks)
+				details['dom']="1/"+str(week)
 			if self.cmb_dates.get_active_text()==_('month(s)'):
 				details['mon']="1/"+self.cmb_interval.get_active_text()
-		task={}
+		details['hidden']=0
+		return details
+	#def _parse_screen
+
+	def _parse_scheduled(self,container,widget=None):
+		details=self._parse_screen()
+		parser=cronParser()
+		self.lbl_info.set_text("Task schedule: "+(parser.parse_taskData(details)))
+
+	def update_task_details(self,widget=None):
+		if self.task_name and self.task_serial:
+			task_data=self.get_task_details()
+			self.scheduler.write_tasks(task_data,self.task_type)
+	#def update_task_details
+
+	def get_task_details(self,widget=None,task_name=None,task_serial=None,task_cmd=None,task_type=None):
+		if task_name:
+			self.task_name=task_name
+		if task_serial:
+			self.task_serial=task_serial
+		if task_cmd:
+			self.task_cmd=task_cmd
+		if task_type:
+			self.task_type=task_type
+		details=self._parse_screen()
 		details['cmd']=self.task_cmd
+		task={}
 		task[self.task_name]={self.task_serial:details}
 		return task
 
@@ -644,14 +509,41 @@ class TaskScheduler:
 		self.btn_remote_tasks.connect("clicked",self.view_tasks_clicked,'remote')
 		self.btn_local_tasks.connect("clicked",self.view_tasks_clicked,'local')
 		#tasks list
+		self.txt_search=builder.get_object("txt_search")
+		self.txt_search.connect('changed',self.match_tasks)
+		self._load_task_list_gui(builder)
+
+		self.stack.add_titled(self.tasks_box, "tasks", "Tasks")
+		self.stack.add_titled(self.add_task_box, "add", "Add Task")
+		
+		#Icons
+		image=Gtk.Image()
+		image.set_from_file(REMOVE_ICON)		
+		self.remove_icon=image.get_pixbuf()
+
+		#Packing
+		self.main_box.pack_start(self.stack,True,False,5)
+		self.window.show_all()
+		self.window.connect("destroy",self.quit)
+		self.set_css_info()
+		self.task_list=[]
+
+		GObject.threads_init()
+		self.btn_remote_tasks.set_active(True)
+		Gtk.main()
+
+	#def start_gui
+
+	def _load_task_list_gui(self,builder):
 		self.tasks_box=builder.get_object("tasks_box")
 		self.tasks_label=builder.get_object("tasks_label")
 		self.tasks_tv=builder.get_object("tasks_treeview")
 		self.task_details_grid=TaskDetails(self.scheduler_client)
-#		td_grid=self.task_details_grid.render_detailed(builder.get_object("task_details_grid"))
-		td_grid=self.task_details_grid.render_basic(builder.get_object("task_details_grid"))
+		td_grid=self.task_details_grid.render_form(builder.get_object("task_details_grid"))
 		self.tasks_store=Gtk.ListStore(str,str,str,GdkPixbuf.Pixbuf)
-		self.tasks_tv.set_model(self.tasks_store)
+		self.tasks_store_filter=self.tasks_store.filter_new()
+		self.tasks_store_filter.set_visible_func(self.filter_tasklist)
+		self.tasks_tv.set_model(self.tasks_store_filter)
 		self.tasks_tv.connect("button-release-event",self.task_clicked)
 		self.tasks_tv.connect("cursor-changed",self.task_clicked)
 
@@ -686,10 +578,13 @@ class TaskScheduler:
 		self.col_remove=column
 		self.tasks_tv.append_column(column)
 
+		self.tasks_tv.set_search_column(2)
+		self.tasks_tv.set_search_entry(self.txt_search)
+
 		#Add tasks
 		self.add_task_box=builder.get_object("add_task_box")
 		self.add_task_grid=TaskDetails(self.scheduler_client)
-		at_grid=self.add_task_grid.render_basic(builder.get_object("add_task_grid"),False)
+		at_grid=self.add_task_grid.render_form(builder.get_object("add_task_grid"),False)
 		self.cmb_task_names=builder.get_object("cmb_task_names")
 		self.cmb_task_cmds=builder.get_object("cmb_task_cmds")
 		builder.get_object("btn_cancel_add").connect("clicked", self.cancel_add_clicked)
@@ -697,109 +592,14 @@ class TaskScheduler:
 		self.chk_remote=builder.get_object("swt_remote")
 		self.chk_local=builder.get_object("swt_local")
 
-		self.stack.add_titled(self.tasks_box, "tasks", "Tasks")
-		self.stack.add_titled(self.add_task_box, "add", "Add Task")
-		
-		#Icons
-		image=Gtk.Image()
-		image.set_from_file(REMOVE_ICON)		
-		self.remove_icon=image.get_pixbuf()
-
-		self.main_box.pack_start(self.stack,True,False,5)
-
-		self.window.show_all()
-		
-		self.window.connect("destroy",self.quit)
-		
-		self.set_css_info()
-		
-		self.task_list=[]
-
-		GObject.threads_init()
-		self.btn_remote_tasks.set_active(True)
-		Gtk.main()
-
-	#def start_gui
-	
 	def set_css_info(self):
 	
 		css = b"""
-
-
 		#WHITE_BACKGROUND {
 			background-image:-gtk-gradient (linear,	left top, left bottom, from (#ffffff),  to (#ffffff));;
 		
 		}
 
-		#BUTTON_LABEL{
-			color:white;
-			font: Roboto 10;
-		}
-
-		#DISABLED_BUTTON_OVER{
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#888888),  to (#888888));;
-		}
-		
-		#DISABLED_BUTTON{
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#666666),  to (#666666));;
-		}
-		
-		#CANCEL_BUTTON{
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#D32F2F),  to (#D32F2F));;
-		}
-		
-		#CANCEL_BUTTON_OVER{
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#F44336),  to (#F44336));;
-		}
-
-		#BUTTON_COLOR {
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#448AFF),  to (#448AFF));;
-		
-		}
-		
-		#BUTTON_OVER_COLOR {
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#449fff),  to (#449fff));;
-			
-		
-		}
-
-		#LOCAL_BUTTON_LABEL{
-			color:white;
-			font: Roboto 11;
-		}
-		
-		#UPDATE_CORRECT_BUTTON_COLOR {
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#43A047),  to (#43A047));;
-		
-		}
-
-		#UPDATE_OVER_COLOR {
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#53b757),  to (#53b757));;
-		
-		}
-
-
-		#UPDATE_ERROR_BUTTON_COLOR {
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#D32F2F),  to (#D32F2F));;
-		
-		}
-
-		#UPDATE_LAUNCHED_OVER_COLOR {
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#F44336),  to (#F44336));;
-		
-		}
-
-		#LOCAL_BUTTON_LAUNCHED_COLOR {
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#bdbdbd), to (#bdbdbd));;
-
-		}
-				
-		#GATHER_ICON_COLOR {
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#b0bec5),  to (#b0bec5));;
-		
-		}
-		
-		
 		#BLUE_FONT {
 			color: #3366cc;
 			font: Roboto Bold 11;
@@ -823,10 +623,6 @@ class TaskScheduler:
 			color: #CC0000;
 			font: Roboto Bold 11; 
 		}
-		
-		#DISABLED_BUTTON{
-			background-image:-gtk-gradient (linear,	left top, left bottom, from (#666666),  to (#666666));;
-		}
 		"""
 
 		self.style_provider=Gtk.CssProvider()
@@ -836,9 +632,26 @@ class TaskScheduler:
 		self.window.set_name("WHITE_BACKGROUND")
 		self.scheduler_box.set_name("WHITE_BACKGROUND")
 		self.tasks_box.set_name("WHITE_BACKGROUND")
-#		self.task_details_grid.set_name("TASKGRID_FONT")
 	#def set_css_info	
-	
+
+	def filter_tasklist(self,model,iterr,data):
+		sw_match=True
+		match=self.txt_search.get_text().lower()
+		task_data=model.get_value(iterr,0).split('\n')
+		task_sched_data=model.get_value(iterr,2).split('\n')
+		task_cmd=task_data[0][task_data[0].find("<b>")+3:task_data[0].find("</b>")]
+		task_name=task_data[1][task_data[1].find("<i>")+3:task_data[1].find("</i>")]
+		task_sched=task_sched_data[0][task_sched_data[0].find("ll'>")+4:task_sched_data[0].find("</span>")]
+
+		task_text=task_cmd+' '+task_name+' '+task_sched
+		if match and match not in task_text.lower():
+			sw_match=False
+		return sw_match
+
+	def match_tasks(self,widget):
+		self.tasks_store_filter.refilter()
+		GObject.timeout_add(100,self.tasks_tv.set_cursor,0)
+
 	def populate_tasks_tv(self,parm):
 		self.scheduled_tasks={}
 		tasks=[]
@@ -846,14 +659,16 @@ class TaskScheduler:
 		self.tasks_store.clear()
 		
 		for task in tasks:
-			print(task)
 			for task_name,task_serialized in task.items():
 				self.scheduled_tasks[task_name]=task_serialized
 				for serial,task in task_serialized.items():
 					parser=cronParser()
 					parsed_calendar=''
 					parsed_calendar=parser.parse_taskData(task)
-					self.tasks_store.append(("<span font='Roboto'><b>"+task['cmd']+"</b></span>\n"+"<span font='Roboto' size='small'><i>"+task_name+"</i></span>",serial,"<span font='Roboto' size='small'>"+parsed_calendar+"</span>",self.remove_icon))
+					self.tasks_store.append(("<span font='Roboto'><b>"+task['cmd']+"</b></span>\n"+\
+									"<span font='Roboto' size='small'><i>"+\
+									task_name+"</i></span>",serial,"<span font='Roboto' size='small'>"+\
+									parsed_calendar+"</span>",self.remove_icon))
 	#def populate_tasks_tv
 
 	def task_clicked(self,treeview,event=None):
@@ -865,27 +680,35 @@ class TaskScheduler:
 				sw_show=False
 		selection=self.tasks_tv.get_selection()
 		model,data=selection.get_selected()
+		if not data:
+			return
 		task_data=model[data][0].split('\n')
 		task_serial=model[data][1].split('\n')[0]
 		task_cmd=task_data[0][task_data[0].find("<b>")+3:task_data[0].find("</b>")]
 		task_name=task_data[1][task_data[1].find("<i>")+3:task_data[1].find("</i>")]
 		task_serial=model[data][1]
+		if self.btn_remote_tasks.get_active():
+			task_type='remote'
+		else:
+			task_type='local'
 		if sw_show:
 			if task_name in self.scheduled_tasks.keys():
 				if task_serial in self.scheduled_tasks[task_name].keys():
-						#					task_data=self.scheduled_tasks[task_name][task_cmd]
 					task_data=self.scheduled_tasks[task_name][task_serial]
-					print("Loading details of task %s of group %s"% (task_serial,task_name))
-					self.task_details_grid.load_basic_task_details(task_name,task_serial,task_data)
+					print("Loading details of %s task %s of group %s"% (task_type,task_serial,task_name))
+					self.task_details_grid.load_task_details(task_name,task_serial,task_data,task_type)
 		else:
-			if self.btn_remote_tasks.get_active():
-				self.scheduler_client.remove_task(task_name,task_serial,task_cmd,'remote')
-			if self.btn_local_tasks.get_active():
-				self.scheduler_client.remove_task(task_name,task_serial,task_cmd,'local')
-			model.remove(data)
+			self.scheduler_client.remove_task(task_name,task_serial,task_cmd,task_type)
+		#filter doesn't support remove so it's needed to get the filter iter and remove it on the parent model
+			tasks_ts=self.tasks_tv.get_selection()
+			(tm,path)=tasks_ts.get_selected_rows()
+			child_path=model.convert_path_to_child_path(path[0])
+			iterr=self.tasks_store.get_iter(child_path)
+			self.tasks_store.remove(iterr)
 	#def task_clicked			
 
 	def save_task_details(self,widget):
+		print("INVOKED BY %s"%widget)
 		task_name=self.cmb_task_names.get_active_text()
 		task_cmd=self.cmb_task_cmds.get_active_text()
 		task_type='local'
@@ -895,22 +718,25 @@ class TaskScheduler:
 
 		taskFilter='local'
 		print("Writing task info...")
-		if self.btn_remote_tasks.get_active():
-			taskFilter='remote'
-		self.scheduler_client.write_tasks(task,taskFilter)
+		if self.chk_remote.get_active():
+			self.scheduler_client.write_tasks(task,'remote')
+		if self.chk_local.get_active():
+			self.scheduler_client.write_tasks(task,'local')
+#		self.view_tasks_clicked(None,taskFilter)
 		return()
 	#def save_task_details
 
 	def view_tasks_clicked(self,widget,parm):
-		if not widget.get_active():
-			return True
+		if widget:
+			if not widget.get_active():
+				return True
 		print("loading %s tasks" % parm)
 		if parm=='remote':
 			self.btn_local_tasks.set_active(False)
 		else:
 			self.btn_remote_tasks.set_active(False)
 		self.populate_tasks_tv(parm)
-		self.tasks_tv.set_model(self.tasks_store)
+		self.tasks_tv.set_model(self.tasks_store_filter)
 		self.tasks_tv.set_cursor(0)
 		self.cancel_add_clicked(widget,parm)
 	#def view_tasks_clicked	
@@ -942,6 +768,7 @@ class TaskScheduler:
 		self.cmb_task_cmds.remove_all()
 		task_name=self.cmb_task_names.get_active_text()
 		for task in tasks:
+			print(task_name)
 			for cmd in task[task_name]:
 				if cmd not in cmds:
 					cmds.append(cmd)

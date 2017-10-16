@@ -56,6 +56,34 @@ class ServerScheduler():
 				self._debug(self.errormsg)
 		return(tasks)
 	#def _read_tasks_file
+	
+	def remove_task(self,task_name,task_serial,task_cmd):
+		self._debug("Removing task from system")
+		sw_del=False
+		wrkfile=self.remote_tasks_dir+'/'+task_name
+		wrkfile=wrkfile.replace(' ','_')
+		task=self._read_tasks_file(wrkfile)
+		if task_name in task.keys():
+			if task_serial in task[task_name].keys():
+				del task[task_name][task_serial]
+				self._debug("Task deleted")
+				sw_del=True
+
+		if sw_del:
+			task=self._serialize_task(task)
+			with open(wrkfile,'w') as json_data:
+				json.dump(task,json_data,indent=4)
+		return True
+
+	def _serialize_task(self,task):
+		serial_task={}
+		for name,task_data in task.items():
+			cont=0
+			serial_task[name]={}
+			for serial,data in task_data.items():
+				serial_task[name].update({cont+1:data})
+				cont+=1
+		return(serial_task)
 
 	def write_tasks(self,tasks):
 		self._debug("Writing remote task info")

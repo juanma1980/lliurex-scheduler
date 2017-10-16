@@ -189,7 +189,7 @@ class clientScheduler():
 
 	def _remove_remote_task(self,task_name,task_serial,task_cmd):
 		self._debug("Removing task from server")
-		tasks=self.n4dclient.remove_tasks("","ServerScheduler",task_name,task_serial,task_cmd)
+		tasks=self.n4dclient.remove_task("","ServerScheduler",task_name,task_serial,task_cmd)
 	#def _remove_remote_task
 
 	def _send_tasks_to_crontab(self):
