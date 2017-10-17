@@ -37,7 +37,7 @@ if __name__ == '__main__':
         platforms='UNIX',
 #        scripts = [''],
         package_dir = {'':'python3-client-scheduler.install/usr/share'},
-        packages = ['clientScheduler'],
+        packages = ['libScheduler'],
         data_files = [],
         classifiers=[
                 'Development Status :: 4 - Beta',
