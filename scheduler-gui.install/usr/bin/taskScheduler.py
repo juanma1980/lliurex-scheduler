@@ -157,7 +157,7 @@ class TaskDetails:
 		self.minute_box.add(self.cmb_minutes)
 
 		self.lbl_info=Gtk.Label("")
-		self.lbl_info.set_margin_bottom(12)
+		self.lbl_info.set_margin_bottom(24)
 		self.lbl_info.set_opacity(0.6)
 		gtkGrid.attach(self.lbl_info,0,0,8,2)
 		dow_frame=Gtk.Frame()
@@ -232,6 +232,7 @@ class TaskDetails:
 		self.task_serial=task_serial
 		self.task_cmd=task_data['cmd']
 		self.task_type=task_type
+		self.lbl_info.set_text('')
 		if task_data['m'].isdigit():
 			cursor=0
 			for minute in range(0,60,5):
@@ -504,6 +505,9 @@ class TaskScheduler:
 		#Toolbar
 		self.btn_add_task=builder.get_object("btn_add_task")
 		self.btn_add_task.connect("button-release-event", self.add_task_clicked)
+
+		self.stackSwitcher=Gtk.StackSwitcher()
+		self.stackSwitcher.set_stack(self.stack)
 		self.btn_remote_tasks=builder.get_object("btn_remote_tasks")
 		self.btn_local_tasks=builder.get_object("btn_local_tasks")
 		self.btn_remote_tasks.connect("clicked",self.view_tasks_clicked,'remote')
@@ -522,6 +526,10 @@ class TaskScheduler:
 		self.remove_icon=image.get_pixbuf()
 
 		#Packing
+		self.main_box.pack_start(self.stack,True,False,5)
+#		separator=Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+#		self.main_box.pack_start(self.stackSwitcher,True,False,5)
+#		self.main_box.pack_start(separator,True,True,0)
 		self.main_box.pack_start(self.stack,True,False,5)
 		self.window.show_all()
 		self.window.connect("destroy",self.quit)
@@ -751,7 +759,7 @@ class TaskScheduler:
 				if name not in names:
 					names.append(name)
 					self.cmb_task_names.append_text(name)
-
+		
 		self.cmb_task_names.connect('changed',self.load_add_task_details_cmds,tasks)
 		self.cmb_task_names.set_active(0)
 		if self.btn_remote_tasks.get_active():
@@ -760,23 +768,23 @@ class TaskScheduler:
 		else:
 			self.chk_local.set_active(1)
 			self.chk_remote.set_active(0)
-		self.btn_add_task.connect("clicked",self.save_task_details)
 	#def load_add_task_details
 
 	def load_add_task_details_cmds(self,widget,tasks):
 		cmds=[]
 		self.cmb_task_cmds.remove_all()
 		task_name=self.cmb_task_names.get_active_text()
-		for task in tasks:
-			print(task_name)
-			for cmd in task[task_name]:
-				if cmd not in cmds:
-					cmds.append(cmd)
-					self.cmb_task_cmds.append_text(cmd)
-		self.cmb_task_cmds.set_active(0)
+		if task_name:
+			for task in tasks:
+				for cmd in task[task_name]:
+					if cmd not in cmds:
+						cmds.append(cmd)
+						self.cmb_task_cmds.append_text(cmd)
+			self.cmb_task_cmds.set_active(0)
 	#def load_add_task_details_cmds
 	
 	def add_task_clicked(self,widget,event):
+		print("Loading new task form")
 		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
 		self.stack.set_visible_child_name("add")
 		self.load_add_task_details()
