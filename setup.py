@@ -23,7 +23,7 @@ from distutils.core import setup
 
 if __name__ == '__main__':
 
-    setup(name='python3-client-scheduler',
+    setup(name='python3-libscheduler',
         version='0.1',
         description='client scheduler modules',
         long_description="""""",
@@ -36,8 +36,8 @@ if __name__ == '__main__':
         license='GPL',
         platforms='UNIX',
 #        scripts = [''],
-        package_dir = {'':'python3-client-scheduler.install/usr/share'},
-        packages = ['libScheduler'],
+        package_dir = {'':'python3-libscheduler.install/usr/share'},
+        packages = ['libscheduler'],
         data_files = [],
         classifiers=[
                 'Development Status :: 4 - Beta',
