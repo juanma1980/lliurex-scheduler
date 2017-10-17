@@ -25,7 +25,7 @@ class Scheduler():
 		self.sched_tasks_dir=self.tasks_dir+"/scheduled"
 		self.local_tasks_dir=self.sched_tasks_dir+"/local"
 		self.cron_dir="/etc/cron.d"
-		self.task_prefix="sched-" #If n4d it's available then prefix must be the one defined in n4d
+		self.task_prefix="local-" #If n4d it's available then prefix must be the one defined in n4d
 	#def __init__
 
 	def _debug(self,msg):
