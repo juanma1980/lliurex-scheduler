@@ -23,7 +23,7 @@ from setuptools import setup
 
 if __name__ == '__main__':
 
-    setup(name='python3-libscheduler',
+    setup(name='python3-scheduler',
         version='0.1',
         description='client scheduler modules',
         long_description="""""",
@@ -36,7 +36,7 @@ if __name__ == '__main__':
         license='GPL',
         platforms='UNIX',
 #        scripts = [''],
-        package_dir = {'':'python3-libscheduler.install/usr/share'},
+        package_dir = {'':'python3-scheduler.install/usr/share'},
         packages = ['libscheduler'],
         data_files = [],
         classifiers=[
