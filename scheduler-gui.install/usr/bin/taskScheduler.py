@@ -14,8 +14,8 @@ import time
 #import commands
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject, GLib, PangoCairo, Pango
 
-from libscheduler import Scheduler as scheduler
-from cronParser import cronParser
+from taskscheduler.taskscheduler import TaskScheduler as scheduler
+from taskscheduler.cronParser import cronParser
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -99,12 +99,12 @@ class TaskDetails:
 			widget=self.cmb_minutes
 		elif date_type=='month':
 			widget=self.cmb_months
-			widget.append_text("Every month")
+			widget.append_text(_("Every month"))
 			inc=1
 			time_units=12
 		elif date_type=='day':
 			widget=self.cmb_days
-			widget.append_text("Every day")
+			widget.append_text(_("Every day"))
 			inc=1
 			time_units=31
 
@@ -124,15 +124,15 @@ class TaskDetails:
 		self.chk_friday=Gtk.ToggleButton(_("Friday"))
 		self.chk_saturday=Gtk.ToggleButton(_("Saturday"))
 		self.chk_sunday=Gtk.ToggleButton(_("Sunday"))
-		self.chk_daily=Gtk.CheckButton("Daily")
-		self.chk_hourly=Gtk.CheckButton("Hourly")
-		self.chk_weekly=Gtk.CheckButton("Weekly")
-		self.chk_interval=Gtk.CheckButton("Interval")
+		self.chk_daily=Gtk.CheckButton(_("Daily"))
+		self.chk_hourly=Gtk.CheckButton(_("Hourly"))
+		self.chk_weekly=Gtk.CheckButton(_("Weekly"))
+		self.chk_interval=Gtk.CheckButton(_("Interval"))
 		self.cmb_interval=Gtk.ComboBoxText()
 		self.cmb_dates=Gtk.ComboBoxText()
 		self._load_interval_data()
 		self._load_date_data()
-		self.chk_special_dates=Gtk.CheckButton("Special cases")
+		self.chk_special_dates=Gtk.CheckButton(_("Special cases"))
 		self.cmb_special_dates=Gtk.ComboBoxText()
 		self._load_special_date_data()
 		self.day_box=Gtk.Box()
@@ -486,7 +486,7 @@ class TaskScheduler:
 	def start_gui(self):
 		self.scheduler_client=scheduler()
 		builder=Gtk.Builder()
-		builder.set_translation_domain('taskScheduler')
+		builder.set_translation_domain('taskscheduler')
 
 		self.stack = Gtk.Stack()
 		self.stack.set_transition_duration(1000)

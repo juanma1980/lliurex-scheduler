@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 import gettext
-gettext.textdomain('lliurex-up')
+gettext.textdomain('taskscheduler')
 _ = gettext.gettext
 
 class cronParser():
 	def __init__(self):
-		self.parsedExpr=''
-	
+			self.expr={'each':_('each'),'at':_('at'),'atm':_("at minute"),'min':_("minutes"),\
+							'emin':_('each minute'),'ehour':_("each hour"),'h':_("hours"),\
+							'hoc':_("o'clock"),'of':_('of'),'evday':_('everyday'),'eday':_("each day"),\
+							'days':_('days'),'day':_('day'),'evmon':_('every month'),'emon':_("each month"),\
+							'months':_('months'),'on':_('on'),'from':_('from'),'to':_('to'),\
+							'and':_('and')}
 	###
 	#Input: dict
 	###
@@ -15,8 +19,8 @@ class cronParser():
 		parsed_data=[]
 		parsed_calendar=''
 		expr={}
-		day_dict={'1':'Mo','2':'Tu','3':'We','4':'Th','5':'Fr','6':'Sa','7':'Su','*':'every'}
-		mon_dict={'1':'Jan','2':'Feb','3':'Mar','4':'Apr','5':'May','6':'Jun','7':'Jul','8':'Aug','9':'Sep','10':'Oct','11':'Nov','12':'Dec','*':'every'}
+		day_dict={'1':_('Monday'),'2':_('Tuesday'),'3':_('Wednesday'),'4':_('Thursday'),'5':_('Friday'),'6':_('Saturday'),'7':_('Sunday'),'*':'every'}
+		mon_dict={'1':_('January'),'2':_('February'),'3':_('March'),'4':_('April'),'5':_('May'),'6':_('June'),'7':_('July'),'8':_('August'),'9':_('September'),'10':_('October'),'11':_('November'),'12':_('December'),'*':'every'}
 		mon_expr=self._parse_cron_expression(taskData['mon'],mon_dict)
 		dow_expr=self._parse_cron_expression(taskData['dow'],day_dict)
 		dom_expr=self._parse_cron_expression(taskData['dom'])
@@ -26,7 +30,7 @@ class cronParser():
 		date_expr=self._parse_date_expr(mon_expr,dow_expr,dom_expr)
 		parsed_data=" ".join([time_expr,date_expr])
 		if parsed_data[0].isdigit():	
-			parsed_calendar="At " + parsed_data
+			parsed_calendar=self.expr['at'] +' ' + parsed_data
 		else:
 			parsed_calendar=parsed_data
 		return parsed_calendar.capitalize()
@@ -43,24 +47,24 @@ class cronParser():
 			time_expr=hour+':'+minute
 		else:
 			if minute!='every':
-				if hour.startswith('each'):
-					minute=_("at minute")+' '+minute
+				if hour.startswith(self.expr['each']):
+					minute=self.expr['atm']+' '+minute
 				else:
-					minute=minute+' '+_("minutes")
+					minute=minute+' '+self.expr('min')
 			else:
-				minute='each minute'
+				minute=self.expr['emin']
 			if hour!='every':
-				if hour.startswith('each'):
+				if hour.startswith(_('each')):
 					if hour.endswith(' 1 '):
-						hour=_("each hour")
+						hour=self.expr['ehour']
 					else:
-						hour=hour+' '+_("hours")
+						hour=hour+' '+self.expr['h']
 				else:
-					hour=hour+' '+_("o'clock")
-				time_expr=_("%s %s" % (hour,minute))
+					hour=hour+' '+self.expr['hoc']
+				time_expr="%s %s" % (hour,minute)
 			else:
-				hour=hour+' '+_("hour")
-				time_expr=_("%s of %s" % (minute,hour))
+				hour=hour+' '+self.expr['h']
+				time_expr="%s %s %s" % (minute,self.expr['of'],hour)
 		return time_expr
 	#def parse_time_expr
 
@@ -76,48 +80,51 @@ class cronParser():
 			int(mon)
 		except:
 			sw_mon_err=True
-		time_expr=_("%s %s" % (dom,mon))
+		time_expr="%s %s" % (dom,mon)
 		if sw_dom_err:
 			if dom=='every' or dom=='*':
-				dom=_("everyday")
+				dom=self.expr['evday']
 			elif 'every' in mon or mon=='*':
-				if dom.startswith('each'):
+				if dom.startswith(self.expr['each']):
 					if dom.endswith(' 1 '):
-						dom=_("each day")
+						dom=self.expr['eday']
 					else:
-						dom=_(("%s days") % dom)
+						dom="%s %s" % (dom,self.expr['days'])
 				else:
-					dom=_(("day %s") % dom)
+					dom="%s %s" % (self.expr['day'],dom)
 			elif ',' in dom:
-				dom=_(("days %s") % dom)
+				dom="%s %s" % (self.expr['days'],dom)
 			elif 'from' in dom:
-				dom=_(("days %s") % dom)
-			elif dom.startswith('each'):
+				dom="%s %s" % (self.expr['days'],dom)
+			elif dom.startswith(self.expr['each']):
 					if dom.endswith(' 1 '):
-						dom=_("each day")
+						dom=self.expr['eday']
 					else:
-						dom=_(("%s days") % dom)
+						dom="%s %s" % (dom,self.expr['days'])
 		else:
-			dom=_("day %s" % dom)
+			dom="%s %s" % (self.expr['day'],dom)
 		if sw_mon_err:
 			if mon=='every' or mon =='*':
-				mon=_('every month')
+				mon=self.expr['evmon']
 			elif mon.startswith('each'):
 				if mon.endswith(' 1 '):
-					mon=_("each month")
+					mon=self.expr['emon']
 				else:
-					mon=_(("%s months") % mon)
+					mon="%s %s" % (mon,self.expr['months'])
+		else:
+			mon="%s %s" % (self,expr['mon'],mon)
 
 		if dow!='every' and dow!='*':	
-			time_expr=_("on %s %s" % (dow,mon))
+			time_expr="%s %s %s" % (self.expr['of'],dow,mon)
 		else:
-			if dom.startswith('each'):
-				time_expr=_("%s %s" % (dom,mon))
+			if dom.startswith(self.expr['each']):
+				time_expr="%s %s" % (dom,mon)
 			else:
-				time_expr=_("on %s %s" % (dom,mon))
+#				time_expr="%s %s %s" % (self.expr['on'],dom,mon)
+				time_expr="%s %s" % (dom,mon)
 
 		return time_expr
-	#def parse_time_expr
+	#def parse_date_expr
 
 	def _parse_cron_expression(self,data,description_dict={}):
 		(each,at_values,range_values,extra_range,values)=('','','','','')
@@ -154,14 +161,14 @@ class cronParser():
 					range_values=value_desc
 		(str_range,str_each,str_at)=('','','')
 		if range_values:
-			str_range=(_("from %s to %s ") % (range_values[0],range_values[1]))
+			str_range="%s %s %s %s " % (self.expr['from'],range_values[0],self.expr['to'],range_values[1])
 		if each:
-			str_each=(_("each %s ") % each)
+			str_each="%s %s " % (self.expr['each'],each)
 		if at_values:
 			if range_values:
-				str_at=(_("and %s and %s") % (','.join(at_values[:-1]),at_values[-1]))
+				str_at="%s %s %s %s" % (self.expr['and'],','.join(at_values[:-1]),self.expr['and'],at_values[-1])
 			else:
-				str_at=(_("at %s and %s") % (','.join(at_values[:-1]),at_values[-1]))
+				str_at="%s %s %s %s" % (self.expr['at'],','.join(at_values[:-1]),self.expr['and'],at_values[-1])
 
 		retval=str_range+str_at+str_each+values
 		if retval=='':
