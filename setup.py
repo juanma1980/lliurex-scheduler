@@ -19,13 +19,13 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 if __name__ == '__main__':
 
     setup(name='python3-scheduler',
         version='0.1',
-        description='client scheduler modules',
+        description='taskscheduler lib',
         long_description="""""",
         author='Lliurex Team',
         author_email='juanma1980@gmail.com',
@@ -37,7 +37,8 @@ if __name__ == '__main__':
         platforms='UNIX',
 #        scripts = [''],
         package_dir = {'':'python3-scheduler.install/usr/share'},
-        packages = ['libscheduler'],
+#       packages = ['libscheduler'],
+		packages=find_packages(),
         data_files = [],
         classifiers=[
                 'Development Status :: 4 - Beta',
