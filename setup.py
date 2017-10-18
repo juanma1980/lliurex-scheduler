@@ -23,7 +23,7 @@ from setuptools import setup, find_packages
 
 if __name__ == '__main__':
 
-    setup(name='python3-scheduler',
+    setup(name='taskscheduler',
         version='0.1',
         description='taskscheduler lib',
         long_description="""""",
@@ -37,8 +37,8 @@ if __name__ == '__main__':
         platforms='UNIX',
 #        scripts = [''],
         package_dir = {'':'python3-scheduler.install/usr/share'},
-#       packages = ['libscheduler'],
-		packages=find_packages(),
+       packages = ['taskscheduler'],
+#		packages=find_packages(),
         data_files = [],
         classifiers=[
                 'Development Status :: 4 - Beta',
