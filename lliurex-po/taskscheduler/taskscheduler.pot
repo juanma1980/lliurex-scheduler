@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-10-18 16:04+0200\n"
+"POT-Creation-Date: 2017-10-19 09:36+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -300,6 +300,14 @@ msgstr ""
 
 #: ../python3-scheduler.install/usr/share/taskscheduler/cronParser.py:13
 msgid "and"
+msgstr ""
+
+#: ../python3-scheduler.install/usr/share/taskscheduler/cronParser.py:13
+msgid "the"
+msgstr ""
+
+#: ../python3-scheduler.install/usr/share/taskscheduler/cronParser.py:13
+msgid "in"
 msgstr ""
 
 #: ../python3-scheduler.install/usr/share/taskscheduler/cronParser.py:23
