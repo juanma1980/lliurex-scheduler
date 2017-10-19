@@ -5,12 +5,12 @@ _ = gettext.gettext
 
 class cronParser():
 	def __init__(self):
-			self.expr={'each':_('each'),'at':_('at'),'atm':_("at minute"),'min':_("minutes"),\
-							'emin':_('each minute'),'ehour':_("each hour"),'h':_("hours"),\
-							'hoc':_("o'clock"),'of':_('of'),'evday':_('everyday'),'eday':_("each day"),\
-							'days':_('days'),'day':_('day'),'evmon':_('every month'),'emon':_("each month"),\
-							'months':_('months'),'on':_('on'),'from':_('from'),'to':_('to'),\
-							'and':_('and'),'the':_('the'),'in':_('in')}
+			self.expr={'of':_('of'),'each':_('each'),'at':_('at'),'on':_('on'),'from':_('from'),\
+					'to':_('to'),'and':_('and'),'the':_('the'),'in':_('in'),\
+					'atm':_("at minute"),'min':_("minutes"),'emin':_('each minute'),'tmin':_('the minute'),\
+					'ehour':_("each hour"),'h':_("hours"),'hoc':_("o'clock"),'evhour':_('every hour'),\
+					'evday':_('everyday'),'eday':_("each day"),'days':_('days'),'day':_('day'),\
+					'evmon':_('every month'),'emon':_("each month"),'months':_('months')}
 	###
 	#Input: dict
 	###
@@ -50,7 +50,8 @@ class cronParser():
 				if hour.startswith(self.expr['each']):
 					minute=self.expr['atm']+' '+minute
 				else:
-					minute=minute+' '+self.expr('min')
+					if hour!='every':
+						minute=minute+' '+self.expr['min']
 			else:
 				minute=self.expr['emin']
 			if hour!='every':
@@ -60,11 +61,11 @@ class cronParser():
 					else:
 						hour=hour+' '+self.expr['h']
 				else:
-					hour=hour+' '+self.expr['hoc']
+					hour="%s %s"%(hour,self.expr['hoc'])
 				time_expr="%s %s" % (hour,minute)
 			else:
-				hour=hour+' '+self.expr['h']
-				time_expr="%s %s %s" % (minute,self.expr['of'],hour)
+				hour="%s"%(self.expr['evhour'])
+				time_expr="%s %s %s %s" % (hour,self.expr['on'],self.expr['tmin'],minute)
 		return time_expr
 	#def parse_time_expr
 
@@ -107,7 +108,7 @@ class cronParser():
 		if sw_mon_err:
 			if mon=='every' or mon =='*':
 				mon=self.expr['evmon']
-			elif mon.startswith('each'):
+			elif mon.startswith(self.expr['each']):
 				if mon.endswith(' 1 '):
 					mon=self.expr['emon']
 				else:
@@ -172,9 +173,9 @@ class cronParser():
 			str_each="%s %s " % (self.expr['each'],each)
 		if at_values:
 			if range_values:
-				str_at="%s %s %s %s" % (self.expr['and'],','.join(at_values[:-1]),self.expr['and'],at_values[-1])
+				str_at="%s %s %s %s" % (self.expr['and'],', '.join(at_values[:-1]),self.expr['and'],at_values[-1])
 			else:
-				str_at="%s %s %s" % (','.join(at_values[:-1]),self.expr['and'],at_values[-1])
+				str_at="%s %s %s" % (', '.join(at_values[:-1]),self.expr['and'],at_values[-1])
 
 		retval=str_range+str_at+str_each+values
 		if retval=='':

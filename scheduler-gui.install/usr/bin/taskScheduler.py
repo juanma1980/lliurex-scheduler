@@ -176,10 +176,14 @@ class TaskDetails:
 		work_days_box.add(self.chk_wednesday)
 		work_days_box.add(self.chk_thursday)
 		work_days_box.add(self.chk_friday)
+		work_days_box.set_focus_chain([self.chk_monday,self.chk_tuesday,self.chk_wednesday,self.chk_thursday,\
+						self.chk_friday])
 		weekend_days_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 		dow_box.add(weekend_days_box)
 		weekend_days_box.add(self.chk_saturday)
 		weekend_days_box.add(self.chk_sunday)
+		weekend_days_box.set_focus_chain([self.chk_saturday,self.chk_sunday])
+		dow_box.set_focus_chain([work_days_box,weekend_days_box])
 		label=Gtk.Label(_("Time & date"))
 		label.set_margin_bottom(6)
 		gtkGrid.attach(label,2,2,2,1)
@@ -202,6 +206,13 @@ class TaskDetails:
 			self.btn_apply=Gtk.Button(stock=Gtk.STOCK_APPLY)
 			gtkGrid.attach(self.btn_apply,5,15,1,1)
 			self.btn_apply.connect("clicked",self.update_task_details)
+		#Tab chain
+		widget_array=[dow_frame,self.hour_box,self.minute_box,self.month_box,self.day_box,self.chk_interval,\
+						self.interval_box,self.chk_special_dates,self.cmb_special_dates]
+		if btn_apply:
+			widget_array.append(self.btn_apply)
+
+		gtkGrid.set_focus_chain(widget_array)
 		#Add data to combos
 		self._load_date_time_data('minute')
 		self._load_date_time_data('hour')
@@ -267,7 +278,7 @@ class TaskDetails:
 				self.day_box.set_sensitive(False)
 				self.hour_box.set_sensitive(True)
 			elif date_type=='mon':
-				self.cmb_interval.set_active(int(pos[1]))
+				self.cmb_interval.set_active(int(pos[1])-1)
 				self.cmb_dates.set_active(3)
 				self.month_box.set_sensitive(False)
 				self.hour_box.set_sensitive(True)
@@ -304,14 +315,14 @@ class TaskDetails:
 	def _changed_interval(self):
 		if self.chk_interval.get_active():
 			interval=self.cmb_dates.get_active_text()
-			if interval=='hour(s)':
+			if interval==_('hour(s)'):
 				self._set_sensitive_widget({self.day_box:not self._get_days_active(),\
 						self.month_box:True,self.hour_box:False})
 				self._set_days_sensitive(True)
-			elif interval=='day(s)' or interval=='week(s)':
+			elif interval==_('day(s)') or interval==_('week(s)'):
 				self._set_sensitive_widget({self.day_box:False,self.month_box:True,self.hour_box:True})
 				self._set_days_sensitive(False)
-			elif interval=='month(s)':
+			elif interval==_('month(s)'):
 				self._set_sensitive_widget({self.day_box:not self._get_days_active(),\
 						self.month_box:False,self.hour_box:True})
 				self._set_days_sensitive(True)
@@ -497,8 +508,10 @@ class TaskScheduler:
 
 		self.window=builder.get_object("main_window")
 		self.main_box=builder.get_object("main_box")
-	
-		self.scheduler_box=builder.get_object("scheduler_box")
+		self.inf_info=Gtk.InfoBar()	
+		self.inf_info.add_button(Gtk.STOCK_CANCEL,Gtk.ResponseType.CANCEL)
+		self.inf_info.add_button(Gtk.STOCK_OK,Gtk.ResponseType.OK)
+		self.main_box.add(self.inf_info)
 		self.view_tasks_button_box=builder.get_object("view_tasks_button_box")
 		self.view_tasks_eb=builder.get_object("view_tasks_eventbox")
 		self.btn_signal_id=None
@@ -506,8 +519,8 @@ class TaskScheduler:
 		self.btn_add_task=builder.get_object("btn_add_task")
 		self.btn_add_task.connect("button-release-event", self.add_task_clicked)
 
-		self.stackSwitcher=Gtk.StackSwitcher()
-		self.stackSwitcher.set_stack(self.stack)
+#		self.stackSwitcher=Gtk.StackSwitcher()
+#		self.stackSwitcher.set_stack(self.stack)
 		self.btn_remote_tasks=builder.get_object("btn_remote_tasks")
 		self.btn_local_tasks=builder.get_object("btn_local_tasks")
 		self.btn_remote_tasks.connect("clicked",self.view_tasks_clicked,'remote')
@@ -525,13 +538,16 @@ class TaskScheduler:
 		image.set_from_file(REMOVE_ICON)		
 		self.remove_icon=image.get_pixbuf()
 
+		#Signals
+
 		#Packing
-		self.main_box.pack_start(self.stack,True,False,5)
+#		self.main_box.pack_start(self.stack,True,False,5)
 #		separator=Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
 #		self.main_box.pack_start(self.stackSwitcher,True,False,5)
 #		self.main_box.pack_start(separator,True,True,0)
 		self.main_box.pack_start(self.stack,True,False,5)
 		self.window.show_all()
+		self.inf_info.hide()
 		self.window.connect("destroy",self.quit)
 		self.set_css_info()
 		self.task_list=[]
@@ -638,7 +654,6 @@ class TaskScheduler:
 		Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),self.style_provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 		
 		self.window.set_name("WHITE_BACKGROUND")
-		self.scheduler_box.set_name("WHITE_BACKGROUND")
 		self.tasks_box.set_name("WHITE_BACKGROUND")
 	#def set_css_info	
 
@@ -706,13 +721,9 @@ class TaskScheduler:
 					print("Loading details of %s task %s of group %s"% (task_type,task_serial,task_name))
 					self.task_details_grid.load_task_details(task_name,task_serial,task_data,task_type)
 		else:
-			self.scheduler_client.remove_task(task_name,task_serial,task_cmd,task_type)
-		#filter doesn't support remove so it's needed to get the filter iter and remove it on the parent model
-			tasks_ts=self.tasks_tv.get_selection()
-			(tm,path)=tasks_ts.get_selected_rows()
-			child_path=model.convert_path_to_child_path(path[0])
-			iterr=self.tasks_store.get_iter(child_path)
-			self.tasks_store.remove(iterr)
+			self.inf_info.get_action_area().add(Gtk.Label("Are you sure to delete this task?"))
+			self.inf_info.show_all()
+			self.inf_info.connect('response',self.manage_remove_responses,model,task_name,task_serial,task_cmd,task_type)
 	#def task_clicked			
 
 	def save_task_details(self,widget):
@@ -794,6 +805,18 @@ class TaskScheduler:
 		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_RIGHT)
 		self.stack.set_visible_child_name("tasks")	
 	#def cancel_add_clicked
+
+	def manage_remove_responses(self,widget,response,model,task_name,task_serial,task_cmd,task_type):
+		if response==Gtk.ResponseType.OK:
+			self.scheduler_client.remove_task(task_name,task_serial,task_cmd,task_type)
+		#filter doesn't support remove so it's needed to get the filter iter and remove it on the parent model
+			tasks_ts=self.tasks_tv.get_selection()
+			(tm,path)=tasks_ts.get_selected_rows()
+			child_path=model.convert_path_to_child_path(path[0])
+			iterr=self.tasks_store.get_iter(child_path)
+			self.tasks_store.remove(iterr)
+
+		self.inf_info.hide()
 
 	def quit(self,widget,event=None):
 		Gtk.main_quit()	
