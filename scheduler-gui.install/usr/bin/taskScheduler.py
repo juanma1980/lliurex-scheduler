@@ -24,7 +24,7 @@ gettext.textdomain('taskscheduler')
 _ = gettext.gettext
 
 BASE_DIR="/usr/share/taskScheduler/"
-BASE_DIR="../share/taskScheduler/"
+#BASE_DIR="../share/taskScheduler/"
 GLADE_FILE=BASE_DIR+"rsrc/taskScheduler.ui"
 REMOVE_ICON=BASE_DIR+"rsrc/trash.svg"
 LOCK_PATH="/var/run/taskScheduler.lock"
