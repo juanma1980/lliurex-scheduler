@@ -23,7 +23,7 @@ import gettext
 gettext.textdomain('taskscheduler')
 _ = gettext.gettext
 
-#BASE_DIR="/usr/share/taskScheduler/"
+BASE_DIR="/usr/share/taskScheduler/"
 BASE_DIR="../share/taskScheduler/"
 GLADE_FILE=BASE_DIR+"rsrc/taskScheduler.ui"
 REMOVE_ICON=BASE_DIR+"rsrc/trash.svg"
@@ -238,7 +238,7 @@ class TaskDetails:
 		return gtkGrid
 
 	def load_task_details(self,task_name,task_serial,task_data,task_type):
-		self._clear_screen()
+		self.clear_screen()
 		self.task_name=task_name
 		self.task_serial=task_serial
 		self.task_cmd=task_data['cmd']
@@ -294,7 +294,7 @@ class TaskDetails:
 					widget_dict[selected_date].set_active(True)
 	#def _parse_date_details
 
-	def _clear_screen(self):
+	def clear_screen(self):
 		widgets=[self.chk_monday,self.chk_thursday,self.chk_wednesday,self.chk_tuesday,\
 				self.chk_friday,self.chk_saturday,self.chk_sunday]
 		for widget in widgets:
@@ -509,9 +509,13 @@ class TaskScheduler:
 		self.window=builder.get_object("main_window")
 		self.main_box=builder.get_object("main_box")
 		self.inf_info=Gtk.InfoBar()	
+		self.inf_lbl=Gtk.Label("")
+		self.inf_info.get_action_area().add(self.inf_lbl)
 		self.inf_info.add_button(Gtk.STOCK_CANCEL,Gtk.ResponseType.CANCEL)
 		self.inf_info.add_button(Gtk.STOCK_OK,Gtk.ResponseType.OK)
-		self.main_box.add(self.inf_info)
+		self.inf_info.set_halign(Gtk.Align.CENTER)
+		self.inf_info.set_valign(Gtk.Align.CENTER)
+		self.main_box.pack_start(self.inf_info,False,False,0)
 		self.view_tasks_button_box=builder.get_object("view_tasks_button_box")
 		self.view_tasks_eb=builder.get_object("view_tasks_eventbox")
 		self.btn_signal_id=None
@@ -523,8 +527,8 @@ class TaskScheduler:
 #		self.stackSwitcher.set_stack(self.stack)
 		self.btn_remote_tasks=builder.get_object("btn_remote_tasks")
 		self.btn_local_tasks=builder.get_object("btn_local_tasks")
-		self.btn_remote_tasks.connect("clicked",self.view_tasks_clicked,'remote')
-		self.btn_local_tasks.connect("clicked",self.view_tasks_clicked,'local')
+		self.handler_remote=self.btn_remote_tasks.connect("clicked",self.view_tasks_clicked,'remote')
+		self.handler_local=self.btn_local_tasks.connect("clicked",self.view_tasks_clicked,'local')
 		#tasks list
 		self.txt_search=builder.get_object("txt_search")
 		self.txt_search.connect('changed',self.match_tasks)
@@ -695,6 +699,7 @@ class TaskScheduler:
 	#def populate_tasks_tv
 
 	def task_clicked(self,treeview,event=None):
+		self.task_details_grid.clear_screen()
 		sw_show=True
 		if event!=None:
 			row=self.tasks_tv.get_path_at_pos(int(event.x),int(event.y))
@@ -721,7 +726,7 @@ class TaskScheduler:
 					print("Loading details of %s task %s of group %s"% (task_type,task_serial,task_name))
 					self.task_details_grid.load_task_details(task_name,task_serial,task_data,task_type)
 		else:
-			self.inf_info.get_action_area().add(Gtk.Label("Are you sure to delete this task?"))
+			self.inf_lbl.set_text(_("Are you sure to delete this task?"))
 			self.inf_info.show_all()
 			self.inf_info.connect('response',self.manage_remove_responses,model,task_name,task_serial,task_cmd,task_type)
 	#def task_clicked			
@@ -745,15 +750,27 @@ class TaskScheduler:
 		return()
 	#def save_task_details
 
+
 	def view_tasks_clicked(self,widget,parm):
 		if widget:
 			if not widget.get_active():
+				if parm=='remote':
+					self._block_widget_state(True,widget,self.handler_remote)
+				else:					
+					self._block_widget_state(True,widget,self.handler_local)
+#				widget.handler_unblock(handler)
 				return True
 		print("loading %s tasks" % parm)
 		if parm=='remote':
 			self.btn_local_tasks.set_active(False)
+			self.btn_local_tasks.props.active=False
+#			self.btn_remote_tasks.set_active(True)
+#			self.btn_remote_tasks.set_sensitive(False)
 		else:
 			self.btn_remote_tasks.set_active(False)
+			self.btn_remote_tasks.props.active=False
+#			self.btn_local_tasks.set_active(True)
+#			self.btn_remote_tasks.set_sensitive(True)
 		self.populate_tasks_tv(parm)
 		self.tasks_tv.set_model(self.tasks_store_filter)
 		self.tasks_tv.set_cursor(0)
@@ -761,6 +778,8 @@ class TaskScheduler:
 	#def view_tasks_clicked	
 
 	def load_add_task_details(self):
+		self._block_widget_state(False,self.btn_remote_tasks,self.handler_remote)
+		self._block_widget_state(False,self.btn_local_tasks,self.handler_local)
 		tasks=[]
 		names=[]
 		self.cmb_task_names.remove_all()
@@ -815,8 +834,17 @@ class TaskScheduler:
 			child_path=model.convert_path_to_child_path(path[0])
 			iterr=self.tasks_store.get_iter(child_path)
 			self.tasks_store.remove(iterr)
-
 		self.inf_info.hide()
+	#def manage_remove_responses
+	
+	###
+	#Changes the state of a widget blocking the signals
+	###
+	def _block_widget_state(self,state,widget,handler):
+		widget.handler_block(handler)
+		widget.set_active(state)
+		GObject.timeout_add(100,widget.handler_unblock,handler)
+	#def _block_widget_state
 
 	def quit(self,widget,event=None):
 		Gtk.main_quit()	
