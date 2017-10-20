@@ -18,6 +18,7 @@ class ServerScheduler():
 		self.cronPrefix="scheduler-"
 		self.status=0
 		self.errormsg=''
+		sw_readErr=False
 	#def __init__
 
 	def _debug(self,msg):
@@ -29,7 +30,9 @@ class ServerScheduler():
 		scheduled_tasks=[]
 		wrkfiles=self._get_wrkfiles()
 		for wrkfile in wrkfiles:
-			scheduled_tasks.append(self._read_tasks_file(wrkfile))
+			content=self._read_tasks_file(wrkfile)
+			if not self.readErr:
+				scheduled_tasks.append(content)
 		self._debug("Tasks loaded")
 		self._debug(str(scheduled_tasks))
 		return(scheduled_tasks)
@@ -46,14 +49,15 @@ class ServerScheduler():
 
 	def _read_tasks_file(self,wrkfile):
 		self._debug("Opening %s" % wrkfile)
-		tasks=None
+		self.readErr=0
+		tasks={}
 		if os.path.isfile(wrkfile):
 			try:
 				tasks=json.loads(open(wrkfile).read())
 			except :
 				self.errormsg=(("unable to open %s") % wrkfile)
-				self.status=1
 				self._debug(self.errormsg)
+				self.readErr=1
 		return(tasks)
 	#def _read_tasks_file
 	
@@ -73,6 +77,7 @@ class ServerScheduler():
 			task=self._serialize_task(task)
 			with open(wrkfile,'w') as json_data:
 				json.dump(task,json_data,indent=4)
+			self._register_cron_update()
 		return True
 
 	def _serialize_task(self,task):
@@ -120,9 +125,9 @@ class ServerScheduler():
 				json.dump(sched_tasks,json_data,indent=4)
 		except Exception as e:
 			print(e)
-		#UPDATE N4D VARIABLE
-		#UPDATE N4D VARIABLE
-		#UPDATE N4D VARIABLE
+		self._register_cron_update()
 		self._debug("%s updated" % task_name)
 	#def write_tasks
 
+	def _register_cron_update(self):
+		objects["VariableManager"].set_variable("SCHEDULED_TASK",1)

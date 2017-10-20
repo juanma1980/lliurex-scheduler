@@ -3,5 +3,5 @@ type=python
 path=ServerScheduler.py
 class=ServerScheduler
 [METHODS]
-write_tasks=anonymous,*
+write_tasks=adm,admins,teachers
 get_tasks=*,anonymous
