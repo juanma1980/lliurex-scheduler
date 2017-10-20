@@ -38,6 +38,7 @@ if __name__ == '__main__':
 #        scripts = [''],
         package_dir = {'':'python3-scheduler.install/usr/share'},
 #       packages = ['taskscheduler'],
+#		packages=find_packages('python3-scheduler.install/usr/share'),
 		packages=find_packages(),
         data_files = [],
         classifiers=[
