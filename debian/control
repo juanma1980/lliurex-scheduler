@@ -14,15 +14,15 @@ Description: Python libraries for taskscheduler
 
 Package: taskscheduler
 Architecture: all
-Depends: ${misc:Depends}, ${python3:Depends}, python3-scheduler
+Depends: ${misc:Depends}, ${python3:Depends}, python3-taskscheduler
 Description: Main taskschedular program
 
 Package: n4d-taskscheduler-server
 Architecture: all
-Depends: ${misc:Depends}, ${python3:Depends}, python3-scheduler
+Depends: ${misc:Depends}, ${python3:Depends}, python3-taskscheduler
 Description: Server side of taskscheduler
 
 Package: n4d-taskscheduler-client
 Architecture: all
-Depends: ${misc:Depends}, ${python3:Depends}, python3-scheduler
+Depends: ${misc:Depends}, ${python3:Depends}, python3-taskscheduler
 Description: client side of taskscheduler
