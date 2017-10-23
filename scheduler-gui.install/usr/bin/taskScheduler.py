@@ -5,6 +5,7 @@ gi.require_version('PangoCairo', '1.0')
 import json
 import cairo
 import os
+import subprocess
 import shutil
 import threading
 import platform
@@ -206,6 +207,8 @@ class TaskDetails:
 			self.btn_apply=Gtk.Button(stock=Gtk.STOCK_APPLY)
 			gtkGrid.attach(self.btn_apply,5,15,1,1)
 			self.btn_apply.connect("clicked",self.update_task_details)
+			if self.flavour!='server':
+				self.btn_apply.set_sensitive(False)
 		#Tab chain
 		widget_array=[dow_frame,self.hour_box,self.minute_box,self.month_box,self.day_box,self.chk_interval,\
 						self.interval_box,self.chk_special_dates,self.cmb_special_dates]
@@ -471,6 +474,10 @@ class TaskScheduler:
 
 	def __init__(self):
 		self.check_root()
+		try:
+			self.flavour=subprocess.getoutput("lliurex-version -f")
+		except:
+			self.flavour="client"
 			
 	#def __init__		
 
@@ -526,6 +533,7 @@ class TaskScheduler:
 #		self.stackSwitcher=Gtk.StackSwitcher()
 #		self.stackSwitcher.set_stack(self.stack)
 		self.btn_remote_tasks=builder.get_object("btn_remote_tasks")
+
 		self.btn_local_tasks=builder.get_object("btn_local_tasks")
 		self.handler_remote=self.btn_remote_tasks.connect("clicked",self.view_tasks_clicked,'remote')
 		self.handler_local=self.btn_local_tasks.connect("clicked",self.view_tasks_clicked,'local')
@@ -792,9 +800,13 @@ class TaskScheduler:
 		
 		self.cmb_task_names.connect('changed',self.load_add_task_details_cmds,tasks)
 		self.cmb_task_names.set_active(0)
+
 		if self.btn_remote_tasks.get_active():
-			self.chk_remote.set_active(1)
-			self.chk_local.set_active(0)
+			if self.flavour=='server':
+				self.chk_remote.set_active(1)
+				self.chk_local.set_active(0)
+			else:
+				self.chk_remote.set_sensitive(False)
 		else:
 			self.chk_local.set_active(1)
 			self.chk_remote.set_active(0)
