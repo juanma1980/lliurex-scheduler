@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # $Id: setup.py,v 1.32 2010/10/17 15:47:21 ghantoos Exp $
 #
@@ -19,12 +19,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from setuptools import setup, find_packages
-#from distutils.core import setup
+#from setuptools import setup, find_packages
+from distutils.core import setup
 
 if __name__ == '__main__':
 
-    setup(name='taskscheduler',
+    setup(name='python3-taskscheduler',
         version='0.1',
         description='taskscheduler lib',
         long_description="""""",
@@ -38,7 +38,7 @@ if __name__ == '__main__':
         platforms='UNIX',
 #        scripts = [''],
         package_dir = {'':'python3-scheduler.install/usr/share/'},
-       packages = ['taskscheduler'],
+        packages = ['taskscheduler'],
 #		packages=find_packages('python3-scheduler.install/usr/share'),
 #		packages=find_packages(),
         data_files = [],
