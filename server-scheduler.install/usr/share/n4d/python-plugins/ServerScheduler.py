@@ -130,4 +130,16 @@ class ServerScheduler():
 	#def write_tasks
 
 	def _register_cron_update(self):
-		objects["VariableManager"].set_variable("SCHEDULED_TASK",1)
+		self._debug("Registering trigger var")
+		val=0
+		if not objects["VariablesManager"].get_variable("SCHEDULED_TASKS"):
+			self._debug("Initializing trigger var")
+			objects["VariablesManager"].add_variable("SCHEDULED_TASKS",{},"","Scheduled tasks trigger","n4d-scheduler-server",False,False)
+		val=objects["VariablesManager"].get_variable("SCHEDULED_TASKS")
+		if not val:
+			val=0
+		if val>=1000:
+			val=0
+		val+=1
+		objects["VariablesManager"].set_variable("SCHEDULED_TASKS",val)
+		self._debug("New value is %s"%val)
