@@ -36,6 +36,10 @@ class TaskDetails:
 		self.scheduler=scheduler
 		self.task_serial="0"
 		self.task_type="remote"
+		try:
+			self.flavour=subprocess.getoutput("lliurex-version -f")
+		except:
+			self.flavour="client"
 
 	def _format_widget_for_grid(self,widget):
 		#common
