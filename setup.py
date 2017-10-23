@@ -37,9 +37,9 @@ if __name__ == '__main__':
         platforms='UNIX',
 #        scripts = [''],
         package_dir = {'':'python3-scheduler.install/usr/share'},
-#       packages = ['taskscheduler'],
+       packages = ['taskscheduler','cronParser'],
 #		packages=find_packages('python3-scheduler.install/usr/share'),
-		packages=find_packages(),
+#		packages=find_packages(),
         data_files = [],
         classifiers=[
                 'Development Status :: 4 - Beta',
