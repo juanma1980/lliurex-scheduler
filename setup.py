@@ -36,7 +36,7 @@ if __name__ == '__main__':
         license='GPL',
         platforms='UNIX',
 #        scripts = [''],
-        package_dir = {'':'python3-scheduler.install/usr/share'},
+        package_dir = {'':'python3-scheduler.install/usr/share/taskscheduler'},
        packages = ['taskscheduler','cronParser'],
 #		packages=find_packages('python3-scheduler.install/usr/share'),
 #		packages=find_packages(),
