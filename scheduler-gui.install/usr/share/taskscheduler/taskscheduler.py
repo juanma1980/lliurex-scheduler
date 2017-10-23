@@ -24,11 +24,11 @@ import gettext
 gettext.textdomain('taskscheduler')
 _ = gettext.gettext
 
-BASE_DIR="/usr/share/taskScheduler/"
-#BASE_DIR="../share/taskScheduler/"
-GLADE_FILE=BASE_DIR+"rsrc/taskScheduler.ui"
+BASE_DIR="/usr/share/taskscheduler/"
+#BASE_DIR="../share/taskscheduler/"
+GLADE_FILE=BASE_DIR+"rsrc/taskscheduler.ui"
 REMOVE_ICON=BASE_DIR+"rsrc/trash.svg"
-LOCK_PATH="/var/run/taskScheduler.lock"
+LOCK_PATH="/var/run/taskscheduler.lock"
 
 class TaskDetails:
 	
