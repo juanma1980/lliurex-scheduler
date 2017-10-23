@@ -26,9 +26,9 @@ _ = gettext.gettext
 
 BASE_DIR="/usr/share/taskscheduler/"
 #BASE_DIR="../share/taskscheduler/"
-GLADE_FILE=BASE_DIR+"rsrc/taskscheduler.ui"
+GLADE_FILE=BASE_DIR+"rsrc/taskScheduler.ui"
 REMOVE_ICON=BASE_DIR+"rsrc/trash.svg"
-LOCK_PATH="/var/run/taskscheduler.lock"
+LOCK_PATH="/var/run/taskScheduler.lock"
 
 class TaskDetails:
 	
