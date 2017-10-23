@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#! /usr/bin/python3
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('PangoCairo', '1.0')
@@ -806,13 +806,13 @@ class TaskScheduler:
 		self.cmb_task_names.set_active(0)
 
 		if self.btn_remote_tasks.get_active():
-			if self.flavour=='server':
-				self.chk_remote.set_active(1)
-				self.chk_local.set_active(0)
-			else:
-				self.chk_remote.set_sensitive(False)
+			self.chk_remote.set_active(1)
+			self.chk_local.set_active(0)
 		else:
 			self.chk_local.set_active(1)
+			self.chk_remote.set_active(0)
+		if self.flavour!='server':
+			self.chk_remote.set_sensitive(False)
 			self.chk_remote.set_active(0)
 	#def load_add_task_details
 
