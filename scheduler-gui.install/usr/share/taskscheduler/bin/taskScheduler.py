@@ -29,6 +29,7 @@ BASE_DIR="/usr/share/taskscheduler/"
 GLADE_FILE=BASE_DIR+"rsrc/taskScheduler.ui"
 REMOVE_ICON=BASE_DIR+"rsrc/trash.svg"
 LOCK_PATH="/var/run/taskScheduler.lock"
+WIDGET_MARGIN=6
 
 class TaskDetails:
 	
@@ -190,14 +191,14 @@ class TaskDetails:
 		weekend_days_box.set_focus_chain([self.chk_saturday,self.chk_sunday])
 		dow_box.set_focus_chain([work_days_box,weekend_days_box])
 		label=Gtk.Label(_("Time & date"))
-		label.set_margin_bottom(6)
+		label.set_margin_bottom(WIDGET_MARGIN)
 		gtkGrid.attach(label,2,2,2,1)
 		gtkGrid.attach_next_to(self.hour_box,label,Gtk.PositionType.BOTTOM,1,1)
 		gtkGrid.attach_next_to(self.minute_box,self.hour_box,Gtk.PositionType.BOTTOM,1,1)
 		gtkGrid.attach_next_to(self.month_box,self.minute_box,Gtk.PositionType.BOTTOM,1,1)
 		gtkGrid.attach_next_to(self.day_box,self.month_box,Gtk.PositionType.BOTTOM,1,1)
 		label=Gtk.Label(_("Time intervals"))
-		label.set_margin_bottom(6)
+		label.set_margin_bottom(WIDGET_MARGIN)
 		gtkGrid.attach(label,4,2,2,1)
 		gtkGrid.attach_next_to(self.chk_interval,label,Gtk.PositionType.BOTTOM,1,1)
 		self.interval_box=Gtk.Box()
@@ -213,7 +214,7 @@ class TaskDetails:
 			self.btn_apply.connect("clicked",self.update_task_details)
 			if self.flavour!='server':
 				self.btn_apply.set_sensitive(False)
-		#Tab chain
+		#Tab order chain
 		widget_array=[dow_frame,self.hour_box,self.minute_box,self.month_box,self.day_box,self.chk_interval,\
 						self.interval_box,self.chk_special_dates,self.cmb_special_dates]
 		if btn_apply:
@@ -226,7 +227,6 @@ class TaskDetails:
 		self._load_date_time_data('day')
 		self._load_date_time_data('month')
 		#Signals
-		gtkGrid.connect("event",self._parse_scheduled)
 		self.chk_monday.connect("toggled",self._enable_fixed_dates)
 		self.chk_thursday.connect("toggled",self._enable_fixed_dates)
 		self.chk_wednesday.connect("toggled",self._enable_fixed_dates)
@@ -238,11 +238,19 @@ class TaskDetails:
 		self.chk_special_dates.connect("toggled",self._chk_special_dates_status)
 		#handled signals
 		self.cmb_dates.connect("changed",self._load_interval_data)
+		self.cmb_months.add_events(Gdk.EventMask.ALL_EVENTS_MASK)
+#		self.cmb_months.connect("changed",self._parse_scheduled)
+#		self.cmb_days.connect("changed",self._parse_scheduled)
+#		self.cmb_hours.connect("changed",self._parse_scheduled)
+#		self.cmb_minutes.connect("changed",self._parse_scheduled)
 
 		#Initial control status
 		self.interval_box.set_sensitive(False)
 		self.cmb_special_dates.set_sensitive(False)
-		return gtkGrid
+		#signals
+		gtkGrid.connect("event",self._parse_scheduled)
+		self.month_box.connect("event",self._parse_scheduled)
+		return (gtkGrid)
 
 	def load_task_details(self,task_name,task_serial,task_data,task_type):
 		self.clear_screen()
@@ -345,6 +353,7 @@ class TaskDetails:
 			self._set_sensitive_widget({self.interval_box:False,self.cmb_special_dates:True,\
 				self.hour_box:True,self.month_box:True,self.day_box:not self._get_days_active()})
 			self._chk_special_dates_status()
+#		self._parse_scheduled()
 	#def _chk_interval_status
 			
 	def _chk_special_dates_status(self,widget=None):
@@ -449,6 +458,7 @@ class TaskDetails:
 	#def _parse_screen
 
 	def _parse_scheduled(self,container,widget=None):
+		print("ENTRO %s"%container)
 		details=self._parse_screen()
 		parser=cronParser()
 		self.lbl_info.set_text("Task schedule: "+(parser.parse_taskData(details)))
@@ -519,14 +529,21 @@ class TaskScheduler:
 
 		self.window=builder.get_object("main_window")
 		self.main_box=builder.get_object("main_box")
-		self.inf_info=Gtk.InfoBar()	
-		self.inf_lbl=Gtk.Label("")
-		self.inf_info.get_action_area().add(self.inf_lbl)
-		self.inf_info.add_button(Gtk.STOCK_CANCEL,Gtk.ResponseType.CANCEL)
-		self.inf_info.add_button(Gtk.STOCK_OK,Gtk.ResponseType.OK)
-		self.inf_info.set_halign(Gtk.Align.CENTER)
-		self.inf_info.set_valign(Gtk.Align.CENTER)
-		self.main_box.pack_start(self.inf_info,False,False,0)
+		self.inf_message=Gtk.InfoBar()
+		self.inf_message.set_show_close_button(True)
+		self.lbl_message=Gtk.Label("")
+		self.inf_message.get_action_area().add(self.lbl_message)
+		self.inf_message.set_halign(Gtk.Align.CENTER)
+		self.inf_message.set_valign(Gtk.Align.CENTER)
+		self.inf_question=Gtk.InfoBar()	
+		self.lbl_question=Gtk.Label("")
+		self.inf_question.get_action_area().add(self.lbl_question)
+		self.inf_question.add_button(Gtk.STOCK_CANCEL,Gtk.ResponseType.CANCEL)
+		self.inf_question.add_button(Gtk.STOCK_OK,Gtk.ResponseType.OK)
+		self.inf_question.set_halign(Gtk.Align.CENTER)
+		self.inf_question.set_valign(Gtk.Align.CENTER)
+		self.main_box.pack_start(self.inf_question,False,False,0)
+		self.main_box.pack_start(self.inf_message,False,False,0)
 		self.view_tasks_button_box=builder.get_object("view_tasks_button_box")
 		self.view_tasks_eb=builder.get_object("view_tasks_eventbox")
 		self.btn_signal_id=None
@@ -555,6 +572,7 @@ class TaskScheduler:
 		self.remove_icon=image.get_pixbuf()
 
 		#Signals
+#		gtkGrid.connect("event",self._parse_scheduled)
 
 		#Packing
 #		self.main_box.pack_start(self.stack,True,False,5)
@@ -563,7 +581,8 @@ class TaskScheduler:
 #		self.main_box.pack_start(separator,True,True,0)
 		self.main_box.pack_start(self.stack,True,False,5)
 		self.window.show_all()
-		self.inf_info.hide()
+		self.inf_question.hide()
+		self.inf_message.hide()
 		self.window.connect("destroy",self.quit)
 		self.set_css_info()
 		self.task_list=[]
@@ -696,15 +715,15 @@ class TaskScheduler:
 		tasks=[]
 		tasks=self.scheduler_client.get_scheduled_tasks(parm)
 		self.tasks_store.clear()
-		
-		for task in tasks:
-			for task_name,task_serialized in task.items():
-				self.scheduled_tasks[task_name]=task_serialized
-				for serial,task in task_serialized.items():
-					parser=cronParser()
-					parsed_calendar=''
-					parsed_calendar=parser.parse_taskData(task)
-					self.tasks_store.append(("<span font='Roboto'><b>"+task['cmd']+"</b></span>\n"+\
+		if type(tasks)==type([]):	
+			for task in tasks:
+				for task_name,task_serialized in task.items():
+					self.scheduled_tasks[task_name]=task_serialized
+					for serial,task in task_serialized.items():
+						parser=cronParser()
+						parsed_calendar=''
+						parsed_calendar=parser.parse_taskData(task)
+						self.tasks_store.append(("<span font='Roboto'><b>"+task['cmd']+"</b></span>\n"+\
 									"<span font='Roboto' size='small'><i>"+\
 									task_name+"</i></span>",serial,"<span font='Roboto' size='small'>"+\
 									parsed_calendar+"</span>",self.remove_icon))
@@ -738,9 +757,12 @@ class TaskScheduler:
 					print("Loading details of %s task %s of group %s"% (task_type,task_serial,task_name))
 					self.task_details_grid.load_task_details(task_name,task_serial,task_data,task_type)
 		else:
-			self.inf_lbl.set_text(_("Are you sure to delete this task?"))
-			self.inf_info.show_all()
-			self.inf_info.connect('response',self.manage_remove_responses,model,task_name,task_serial,task_cmd,task_type)
+			self.lbl_question.set_text(_("Are you sure to delete this task?"))
+			for widget in self.main_box.get_children():
+				widget.set_sensitive(False)
+			self.inf_question.set_sensitive(True)
+			self.inf_question.show_all()
+			self.inf_question.connect('response',self.manage_remove_responses,model,task_name,task_serial,task_cmd,task_type)
 	#def task_clicked			
 
 	def save_task_details(self,widget):
@@ -750,7 +772,7 @@ class TaskScheduler:
 		task_type='local'
 		if self.btn_remote_tasks.get_active():
 			task_type='remote'
-		task=self.add_task_grid.get_task_details(None,task_name,None,task_cmd,task_type)
+		task=self.add_task_grid.get_task_details(self.inf_message,task_name,None,task_cmd,task_type)
 
 		taskFilter='local'
 		print("Writing task info...")
@@ -759,6 +781,7 @@ class TaskScheduler:
 		if self.chk_local.get_active():
 			self.scheduler_client.write_tasks(task,'local')
 #		self.view_tasks_clicked(None,taskFilter)
+		self._show_info(_("Task saved"))
 		return()
 	#def save_task_details
 
@@ -836,7 +859,7 @@ class TaskScheduler:
 		self.load_add_task_details()
 	#def add_task_clicked	
 
-	def cancel_add_clicked(self,widget,event):
+	def cancel_add_clicked(self,widget,event=None):
 		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_RIGHT)
 		self.stack.set_visible_child_name("tasks")	
 	#def cancel_add_clicked
@@ -850,8 +873,15 @@ class TaskScheduler:
 			child_path=model.convert_path_to_child_path(path[0])
 			iterr=self.tasks_store.get_iter(child_path)
 			self.tasks_store.remove(iterr)
-		self.inf_info.hide()
+		self.inf_question.hide()
+		for widget in self.main_box.get_children():
+			widget.set_sensitive(True)
 	#def manage_remove_responses
+
+	def _show_info(self,msg):
+		self.lbl_message.set_text(_(msg))
+		self.inf_message.show_all()
+		GObject.timeout_add(5000,self.inf_message.hide)
 	
 	###
 	#Changes the state of a widget blocking the signals
