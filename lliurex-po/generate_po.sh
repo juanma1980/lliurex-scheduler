@@ -1,7 +1,7 @@
 #!/bin/bash
 
-PYTHON_FILES="../scheduler-gui.install/usr/bin/taskScheduler.py ../python3-scheduler.install/usr/share/taskscheduler/*.py"
-UI_FILES="../scheduler-gui.install/usr/share/taskScheduler/rsrc/taskScheduler.ui"
+PYTHON_FILES="../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py ../python3-taskscheduler.install/usr/share/taskscheduler/*.py"
+UI_FILES="../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui"
 
 mkdir -p taskscheduler/
 
