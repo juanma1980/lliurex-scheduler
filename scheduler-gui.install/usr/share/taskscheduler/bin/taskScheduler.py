@@ -55,7 +55,9 @@ class TaskDetails:
 			widget.set_width_chars(2)
 			widget.set_max_width_chars(3)
 
-	def _load_interval_data(self,widget=None):
+	def _load_interval_data(self,widget=None,handler=None):
+		if handler:
+			self.cmb_interval.handler_block(handler)
 		position=self.cmb_interval.get_active()
 		self.cmb_interval.remove_all()
 		date=self.cmb_dates.get_active_text()
@@ -79,6 +81,10 @@ class TaskDetails:
 		elif position<0:
 			position=0
 		self.cmb_interval.set_active(position)
+		if handler:
+			print("DESBLOQUEO")
+			self.cmb_interval.handler_unblock(handler)
+			self._parse_scheduled(True)
 	
 	def _load_date_data(self):
 		date=[_("hour(s)"),_("day(s)"),_("week(s)"),_("month(s)")]
@@ -226,30 +232,29 @@ class TaskDetails:
 		self._load_date_time_data('hour')
 		self._load_date_time_data('day')
 		self._load_date_time_data('month')
+		#handled signals
+		interval_handler=self.cmb_interval.connect("changed",self._parse_scheduled)
 		#Signals
-		self.chk_monday.connect("toggled",self._enable_fixed_dates)
-		self.chk_thursday.connect("toggled",self._enable_fixed_dates)
-		self.chk_wednesday.connect("toggled",self._enable_fixed_dates)
-		self.chk_tuesday.connect("toggled",self._enable_fixed_dates)
-		self.chk_friday.connect("toggled",self._enable_fixed_dates)
-		self.chk_saturday.connect("toggled",self._enable_fixed_dates)
-		self.chk_sunday.connect("toggled",self._enable_fixed_dates)
+		gtkGrid.connect("event",self._parse_scheduled)
+		self.chk_monday.connect("toggled",self._enable_fixed_dates,interval_handler)
+		self.chk_thursday.connect("toggled",self._enable_fixed_dates,interval_handler)
+		self.chk_wednesday.connect("toggled",self._enable_fixed_dates,interval_handler)
+		self.chk_tuesday.connect("toggled",self._enable_fixed_dates,interval_handler)
+		self.chk_friday.connect("toggled",self._enable_fixed_dates,interval_handler)
+		self.chk_saturday.connect("toggled",self._enable_fixed_dates,interval_handler)
+		self.chk_sunday.connect("toggled",self._enable_fixed_dates,interval_handler)
 		self.chk_interval.connect("toggled",self._chk_interval_status)
 		self.chk_special_dates.connect("toggled",self._chk_special_dates_status)
-		#handled signals
-		self.cmb_dates.connect("changed",self._load_interval_data)
-		self.cmb_months.add_events(Gdk.EventMask.ALL_EVENTS_MASK)
-#		self.cmb_months.connect("changed",self._parse_scheduled)
-#		self.cmb_days.connect("changed",self._parse_scheduled)
-#		self.cmb_hours.connect("changed",self._parse_scheduled)
-#		self.cmb_minutes.connect("changed",self._parse_scheduled)
+		self.cmb_dates.connect("changed",self._load_interval_data,interval_handler)
+		self.cmb_months.connect("changed",self._parse_scheduled)
+		self.cmb_days.connect("changed",self._parse_scheduled)
+		self.cmb_hours.connect("changed",self._parse_scheduled)
+		self.cmb_minutes.connect("changed",self._parse_scheduled)
 
 		#Initial control status
 		self.interval_box.set_sensitive(False)
 		self.cmb_special_dates.set_sensitive(False)
 		#signals
-		gtkGrid.connect("event",self._parse_scheduled)
-		self.month_box.connect("event",self._parse_scheduled)
 		return (gtkGrid)
 
 	def load_task_details(self,task_name,task_serial,task_data,task_type):
@@ -383,19 +388,19 @@ class TaskDetails:
 		return sw_active
 	#def _get_days_active
 
-	def _enable_fixed_dates(self,widget):
+	def _enable_fixed_dates(self,widget,handler=None):
 		sw_enable=True
 		sw_enable=self._get_days_active()
 		if sw_enable:
 			if self.chk_interval.get_active():
-				self._load_interval_data(True)
+				self._load_interval_data(True,handler)
 				self.day_box.set_sensitive(False)
 			else:
 				self.month_box.set_sensitive(True)
 				self.day_box.set_sensitive(False)
 		else:
 			if self.chk_interval.get_active():
-				self._load_interval_data(True)
+				self._load_interval_data(True,handler)
 			else:
 				self.day_box.set_sensitive(True)
 				self.month_box.set_sensitive(True)
@@ -459,6 +464,7 @@ class TaskDetails:
 
 	def _parse_scheduled(self,container,widget=None):
 		print("ENTRO %s"%container)
+		GObject.timeout_add(1000,self._parse_screen)
 		details=self._parse_screen()
 		parser=cronParser()
 		self.lbl_info.set_text("Task schedule: "+(parser.parse_taskData(details)))
