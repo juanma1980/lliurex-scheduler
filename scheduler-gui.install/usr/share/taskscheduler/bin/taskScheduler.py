@@ -17,6 +17,7 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, GObject, GLib, PangoCairo, Pango
 
 from taskscheduler.taskscheduler import TaskScheduler as scheduler
 from taskscheduler.cronParser import cronParser
+from logincomponent import *
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -30,17 +31,23 @@ GLADE_FILE=BASE_DIR+"rsrc/taskScheduler.ui"
 REMOVE_ICON=BASE_DIR+"rsrc/trash.svg"
 LOCK_PATH="/var/run/taskScheduler.lock"
 WIDGET_MARGIN=6
-
+DBG=1
 class TaskDetails:
 	
 	def __init__(self,scheduler):
 		self.scheduler=scheduler
+		self.parser=cronParser()
 		self.task_serial="0"
 		self.task_type="remote"
+		self.btn_apply=Gtk.Button(stock=Gtk.STOCK_APPLY)
 		try:
 			self.flavour=subprocess.getoutput("lliurex-version -f")
 		except:
 			self.flavour="client"
+
+	def _debug(self,msg):
+		if DBG:
+			print("taskDetails: %s"%msg)
 
 	def _format_widget_for_grid(self,widget):
 		#common
@@ -82,7 +89,6 @@ class TaskDetails:
 			position=0
 		self.cmb_interval.set_active(position)
 		if handler:
-			print("DESBLOQUEO")
 			self.cmb_interval.handler_unblock(handler)
 			self._parse_scheduled(True)
 	
@@ -215,11 +221,8 @@ class TaskDetails:
 		gtkGrid.attach_next_to(self.chk_special_dates,self.interval_box,Gtk.PositionType.BOTTOM,2,1)
 		gtkGrid.attach_next_to(self.cmb_special_dates,self.chk_special_dates,Gtk.PositionType.BOTTOM,1,1)
 		if btn_apply:
-			self.btn_apply=Gtk.Button(stock=Gtk.STOCK_APPLY)
 			gtkGrid.attach(self.btn_apply,5,15,1,1)
-			self.btn_apply.connect("clicked",self.update_task_details)
-			if self.flavour!='server':
-				self.btn_apply.set_sensitive(False)
+#			self.btn_apply.connect("clicked",self.update_task_details)
 		#Tab order chain
 		widget_array=[dow_frame,self.hour_box,self.minute_box,self.month_box,self.day_box,self.chk_interval,\
 						self.interval_box,self.chk_special_dates,self.cmb_special_dates]
@@ -425,7 +428,7 @@ class TaskDetails:
 				self.chk_friday,self.chk_saturday,self.chk_sunday]
 		cont=1
 		for widget in widgets:
-			if widget.get_active():
+			if widget.get_active() and widget.get_sensitive():
 				dow+=str(cont)+','
 			cont+=1
 		if dow!='':
@@ -462,12 +465,10 @@ class TaskDetails:
 		return details
 	#def _parse_screen
 
-	def _parse_scheduled(self,container,widget=None):
-		print("ENTRO %s"%container)
+	def _parse_scheduled(self,container=None,widget=None):
 		GObject.timeout_add(1000,self._parse_screen)
 		details=self._parse_screen()
-		parser=cronParser()
-		self.lbl_info.set_text("Task schedule: "+(parser.parse_taskData(details)))
+		self.lbl_info.set_text("Task schedule: "+(self.parser.parse_taskData(details)))
 
 	def update_task_details(self,widget=None):
 		if self.task_name and self.task_serial:
@@ -488,12 +489,12 @@ class TaskDetails:
 		details['cmd']=self.task_cmd
 		task={}
 		task[self.task_name]={self.task_serial:details}
+		self._debug("Saving %s"%task)
 		return task
 
 class TaskScheduler:
-
 	def __init__(self):
-		self.check_root()
+		self.is_scheduler_running()
 		try:
 			self.flavour=subprocess.getoutput("lliurex-version -f")
 		except:
@@ -501,25 +502,16 @@ class TaskScheduler:
 			
 	#def __init__		
 
-	def isscheduler_running(self):
+	def _debug(self,msg):
+		if DBG:
+			print("taskScheduler: %s"%msg)
+
+	def is_scheduler_running(self):
 		if os.path.exists(LOCK_PATH):
 			dialog = Gtk.MessageDialog(None,0,Gtk.MessageType.ERROR, Gtk.ButtonsType.CANCEL, "Task Scheduler")
 			dialog.format_secondary_text(_("There's another instance of Task Scheduler running."))
 			dialog.run()
 			sys.exit(1)
-
-	def check_root(self):
-		try:
-			print ("  [taskScheduler]: Checking root")
-			f=open("/etc/scheduler/scheduler.token","w")
-			f.close()
-		except:
-			print ("  [taskScheduler]: No administration privileges")
-			dialog = Gtk.MessageDialog(None,0,Gtk.MessageType.ERROR, Gtk.ButtonsType.CANCEL, "taskScheduler")
-			dialog.format_secondary_text(_("You need administration privileges to run this application."))
-			dialog.run()
-			sys.exit(1)
-	#def check_root
 
 	def start_gui(self):
 		self.scheduler_client=scheduler()
@@ -535,6 +527,15 @@ class TaskScheduler:
 
 		self.window=builder.get_object("main_window")
 		self.main_box=builder.get_object("main_box")
+#		self.login=builder.get_object("login_box")
+		self.login=loginComponent()
+		self.login.set_info_text("Task Scheduler","Programador de tareas","Bienvenido al programador de tareas para Lliurex.\nDesde aquí puedes:\n<sub>* Programar tareas en el equipo local\n* Distribuir una tarea a los equipos de la red\n*Consultar las tareas programadas</sub>")
+		infobox=self.login.get_action_area()
+		infobox.add(Gtk.Label("Prueba"))
+#		self.login.set_info_background(from_color='#000000',to_color='@white')
+		self.login.after_validation_func(self._signin)
+		self.loginBox=self.login.render_form()
+#		self.main_box.add(self.login)
 		self.inf_message=Gtk.InfoBar()
 		self.inf_message.set_show_close_button(True)
 		self.lbl_message=Gtk.Label("")
@@ -554,6 +555,7 @@ class TaskScheduler:
 		self.view_tasks_eb=builder.get_object("view_tasks_eventbox")
 		self.btn_signal_id=None
 		#Toolbar
+		self.toolbar=builder.get_object("toolbar")
 		self.btn_add_task=builder.get_object("btn_add_task")
 		self.btn_add_task.connect("button-release-event", self.add_task_clicked)
 
@@ -568,7 +570,7 @@ class TaskScheduler:
 		self.txt_search=builder.get_object("txt_search")
 		self.txt_search.connect('changed',self.match_tasks)
 		self._load_task_list_gui(builder)
-
+		self.stack.add_titled(self.loginBox, "login", "Login")
 		self.stack.add_titled(self.tasks_box, "tasks", "Tasks")
 		self.stack.add_titled(self.add_task_box, "add", "Add Task")
 		
@@ -586,18 +588,33 @@ class TaskScheduler:
 #		self.main_box.pack_start(self.stackSwitcher,True,False,5)
 #		self.main_box.pack_start(separator,True,True,0)
 		self.main_box.pack_start(self.stack,True,False,5)
+#		self.toolbar.set_sensitive(False)
 		self.window.show_all()
+		self.toolbar.hide()
 		self.inf_question.hide()
 		self.inf_message.hide()
 		self.window.connect("destroy",self.quit)
 		self.set_css_info()
 		self.task_list=[]
+		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
+		self.stack.set_visible_child_name("login")
 
 		GObject.threads_init()
-		self.btn_remote_tasks.set_active(True)
 		Gtk.main()
 
 	#def start_gui
+
+	def _signin(self,loginMethod=None,user=None,pwd=None,data=None):
+		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
+		self.stack.set_visible_child_name("tasks")
+		self.toolbar.show()
+		self.scheduler_client.set_credentials([user,pwd])
+		if loginMethod!='N4d':
+			self.btn_local_tasks.set_active(True)
+			self.btn_remote_tasks.set_visible(False)
+		else:
+			self.btn_remote_tasks.set_active(True)
+
 
 	def _load_task_list_gui(self,builder):
 		self.tasks_box=builder.get_object("tasks_box")
@@ -605,6 +622,8 @@ class TaskScheduler:
 		self.tasks_tv=builder.get_object("tasks_treeview")
 		self.task_details_grid=TaskDetails(self.scheduler_client)
 		td_grid=self.task_details_grid.render_form(builder.get_object("task_details_grid"))
+	#	self.task_details_grid.btn_apply.connect('event-after',self.reload_grid)
+		self.task_details_grid.btn_apply.connect("clicked",self.update_task)
 		self.tasks_store=Gtk.ListStore(str,str,str,GdkPixbuf.Pixbuf)
 		self.tasks_store_filter=self.tasks_store.filter_new()
 		self.tasks_store_filter.set_visible_func(self.filter_tasklist)
@@ -716,10 +735,10 @@ class TaskScheduler:
 		self.tasks_store_filter.refilter()
 		GObject.timeout_add(100,self.tasks_tv.set_cursor,0)
 
-	def populate_tasks_tv(self,parm):
+	def populate_tasks_tv(self,task_type):
 		self.scheduled_tasks={}
 		tasks=[]
-		tasks=self.scheduler_client.get_scheduled_tasks(parm)
+		tasks=self.scheduler_client.get_scheduled_tasks(task_type)
 		self.tasks_store.clear()
 		if type(tasks)==type([]):	
 			for task in tasks:
@@ -760,7 +779,7 @@ class TaskScheduler:
 			if task_name in self.scheduled_tasks.keys():
 				if task_serial in self.scheduled_tasks[task_name].keys():
 					task_data=self.scheduled_tasks[task_name][task_serial]
-					print("Loading details of %s task %s of group %s"% (task_type,task_serial,task_name))
+					self._debug("Loading details of %s task %s of group %s"% (task_type,task_serial,task_name))
 					self.task_details_grid.load_task_details(task_name,task_serial,task_data,task_type)
 		else:
 			self.lbl_question.set_text(_("Are you sure to delete this task?"))
@@ -772,7 +791,6 @@ class TaskScheduler:
 	#def task_clicked			
 
 	def save_task_details(self,widget):
-		print("INVOKED BY %s"%widget)
 		task_name=self.cmb_task_names.get_active_text()
 		task_cmd=self.cmb_task_cmds.get_active_text()
 		task_type='local'
@@ -781,7 +799,7 @@ class TaskScheduler:
 		task=self.add_task_grid.get_task_details(self.inf_message,task_name,None,task_cmd,task_type)
 
 		taskFilter='local'
-		print("Writing task info...")
+		self._debug("Writing task info...")
 		if self.chk_remote.get_active():
 			self.scheduler_client.write_tasks(task,'remote')
 		if self.chk_local.get_active():
@@ -792,17 +810,17 @@ class TaskScheduler:
 	#def save_task_details
 
 
-	def view_tasks_clicked(self,widget,parm):
+	def view_tasks_clicked(self,widget,task_type):
 		if widget:
 			if not widget.get_active():
-				if parm=='remote':
+				if task_type=='remote':
 					self._block_widget_state(True,widget,self.handler_remote)
 				else:					
 					self._block_widget_state(True,widget,self.handler_local)
 #				widget.handler_unblock(handler)
 				return True
-		print("loading %s tasks" % parm)
-		if parm=='remote':
+		self._debug("loading %s tasks" % task_type)
+		if task_type=='remote':
 			self.btn_local_tasks.set_active(False)
 			self.btn_local_tasks.props.active=False
 #			self.btn_remote_tasks.set_active(True)
@@ -812,10 +830,10 @@ class TaskScheduler:
 			self.btn_remote_tasks.props.active=False
 #			self.btn_local_tasks.set_active(True)
 #			self.btn_remote_tasks.set_sensitive(True)
-		self.populate_tasks_tv(parm)
+		self.populate_tasks_tv(task_type)
 		self.tasks_tv.set_model(self.tasks_store_filter)
 		self.tasks_tv.set_cursor(0)
-		self.cancel_add_clicked(widget,parm)
+		self.cancel_add_clicked(widget,task_type)
 	#def view_tasks_clicked	
 
 	def load_add_task_details(self):
@@ -859,7 +877,7 @@ class TaskScheduler:
 	#def load_add_task_details_cmds
 	
 	def add_task_clicked(self,widget,event):
-		print("Loading new task form")
+		self._debug("Loading new task form")
 		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
 		self.stack.set_visible_child_name("add")
 		self.load_add_task_details()
@@ -879,10 +897,24 @@ class TaskScheduler:
 			child_path=model.convert_path_to_child_path(path[0])
 			iterr=self.tasks_store.get_iter(child_path)
 			self.tasks_store.remove(iterr)
+			self.populate_tasks_tv(task_type)
 		self.inf_question.hide()
 		for widget in self.main_box.get_children():
 			widget.set_sensitive(True)
 	#def manage_remove_responses
+
+	def update_task(self,widget,data=None):
+		self.task_details_grid.update_task_details()
+		self.reload_grid()
+
+	def reload_grid(self):
+		cursor=self.tasks_tv.get_cursor()[0]
+		if self.btn_remote_tasks.get_active():
+			task_type='remote'
+		else:
+			task_type='local'
+		self.populate_tasks_tv(task_type)
+		self.tasks_tv.set_cursor(cursor)
 
 	def _show_info(self,msg):
 		self.lbl_message.set_text(_(msg))
