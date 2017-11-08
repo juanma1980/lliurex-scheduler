@@ -528,11 +528,12 @@ class TaskScheduler:
 		self.window=builder.get_object("main_window")
 		self.main_box=builder.get_object("main_box")
 #		self.login=builder.get_object("login_box")
-		self.login=loginComponent()
+		self.login=N4dLogin()
 		self.login.set_info_text("Task Scheduler","Programador de tareas","Bienvenido al programador de tareas para Lliurex.\nDesde aquí puedes:\n<sub>* Programar tareas en el equipo local\n* Distribuir una tarea a los equipos de la red\n*Consultar las tareas programadas</sub>")
-		infobox=self.login.get_action_area()
-		infobox.add(Gtk.Label("Prueba"))
-#		self.login.set_info_background(from_color='#000000',to_color='@white')
+#		self.login.set_info_text_fg("white")
+#		infobox=self.login.get_action_area()
+#		infobox.add(Gtk.Label("Prueba"))
+		self.login.set_info_background(from_color='#FFFFFF',to_color='#EEDD00')
 		self.login.after_validation_func(self._signin)
 		self.loginBox=self.login.render_form()
 #		self.main_box.add(self.login)
@@ -542,6 +543,10 @@ class TaskScheduler:
 		self.inf_message.get_action_area().add(self.lbl_message)
 		self.inf_message.set_halign(Gtk.Align.CENTER)
 		self.inf_message.set_valign(Gtk.Align.CENTER)
+		def hide(widget,response):
+			self.inf_message.hide()
+		self.inf_message.connect('response',hide)
+
 		self.inf_question=Gtk.InfoBar()	
 		self.lbl_question=Gtk.Label("")
 		self.inf_question.get_action_area().add(self.lbl_question)
@@ -915,6 +920,7 @@ class TaskScheduler:
 			task_type='local'
 		self.populate_tasks_tv(task_type)
 		self.tasks_tv.set_cursor(cursor)
+		self._show_info(_('Task updated'))
 
 	def _show_info(self,msg):
 		self.lbl_message.set_text(_(msg))

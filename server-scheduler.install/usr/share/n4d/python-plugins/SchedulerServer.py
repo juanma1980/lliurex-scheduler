@@ -8,7 +8,7 @@
 import os
 import json
 
-class ServerScheduler():
+class SchedulerServer():
 	def __init__(self):
 		self.dbg=1
 		self.taskDir="/etc/scheduler/tasks.d"
