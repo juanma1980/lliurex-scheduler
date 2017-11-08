@@ -17,7 +17,7 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, GObject, GLib, PangoCairo, Pango
 
 from taskscheduler.taskscheduler import TaskScheduler as scheduler
 from taskscheduler.cronParser import cronParser
-from logincomponent import *
+from edupals.ui.n4dgtklogin import *
 import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -528,13 +528,13 @@ class TaskScheduler:
 		self.window=builder.get_object("main_window")
 		self.main_box=builder.get_object("main_box")
 #		self.login=builder.get_object("login_box")
-		self.login=N4dLogin()
+		self.login=N4dGtkLogin()
 		self.login.set_info_text("Task Scheduler","Programador de tareas","Bienvenido al programador de tareas para Lliurex.\nDesde aquí puedes:\n<sub>* Programar tareas en el equipo local\n* Distribuir una tarea a los equipos de la red\n*Consultar las tareas programadas</sub>")
 #		self.login.set_info_text_fg("white")
 #		infobox=self.login.get_action_area()
 #		infobox.add(Gtk.Label("Prueba"))
 		self.login.set_info_background(from_color='#FFFFFF',to_color='#EEDD00')
-		self.login.after_validation_func(self._signin)
+		self.login.after_validation_goto(self._signin)
 		self.loginBox=self.login.render_form()
 #		self.main_box.add(self.login)
 		self.inf_message=Gtk.InfoBar()
