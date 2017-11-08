@@ -10,7 +10,7 @@ import json
 
 class SchedulerServer():
 	def __init__(self):
-		self.dbg=1
+		self.dbg=0
 		self.taskDir="/etc/scheduler/tasks.d"
 		self.schedTasksDir=self.taskDir+"/scheduled"
 		self.remote_tasks_dir=self.schedTasksDir+"/remote"

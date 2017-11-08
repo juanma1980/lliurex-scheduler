@@ -14,7 +14,7 @@ class SchedulerClient():
 		self.task_prefix='remote-' #Temp workaround->Must be declared on a n4d var
 		self.cron_dir='/etc/cron.d'
 		self.count=0
-		self.dbg=1
+		self.dbg=0
 
 	def startup(self,options):
 		t=threading.Thread(target=self._main_thread)
