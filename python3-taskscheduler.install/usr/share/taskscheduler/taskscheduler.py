@@ -14,7 +14,7 @@ import ssl
 
 class TaskScheduler():
 	def __init__(self):
-		self.dbg=1
+		self.dbg=0
 		self.n4dserver=self._n4d_connect()
 		self.n4dclient=self._n4d_connect('localhost')
 		self.tasks_dir="/etc/scheduler/tasks.d"

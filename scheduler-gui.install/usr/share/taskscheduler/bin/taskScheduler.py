@@ -31,7 +31,7 @@ GLADE_FILE=BASE_DIR+"rsrc/taskScheduler.ui"
 REMOVE_ICON=BASE_DIR+"rsrc/trash.svg"
 LOCK_PATH="/var/run/taskScheduler.lock"
 WIDGET_MARGIN=6
-DBG=1
+DBG=0
 class TaskDetails:
 	
 	def __init__(self,scheduler):
@@ -148,11 +148,7 @@ class TaskDetails:
 		self.chk_interval=Gtk.CheckButton(_("Interval"))
 		self.cmb_interval=Gtk.ComboBoxText()
 		self.cmb_dates=Gtk.ComboBoxText()
-		self._load_interval_data()
-		self._load_date_data()
-		self.chk_special_dates=Gtk.CheckButton(_("Special cases"))
-		self.cmb_special_dates=Gtk.ComboBoxText()
-		self._load_special_date_data()
+		self.chk_special_dates=Gtk.CheckButton(_("Last month day"))
 		self.day_box=Gtk.Box()
 		self.day_box.set_homogeneous(True)
 		self.cmb_days=Gtk.ComboBoxText()
@@ -174,21 +170,25 @@ class TaskDetails:
 		self.minute_box.add(Gtk.Label(_("Minutes")))
 		self.minute_box.add(self.cmb_minutes)
 
+		self._load_interval_data()
+		self._load_date_data()
+
 		self.lbl_info=Gtk.Label("")
-		self.lbl_info.set_margin_bottom(24)
 		self.lbl_info.set_opacity(0.6)
-		gtkGrid.attach(self.lbl_info,0,0,8,2)
+		gtkGrid.attach(self.lbl_info,0,0,4,1)
+		self.lbl_info.set_margin_bottom(24)
 		dow_frame=Gtk.Frame()
 		dow_frame.set_shadow_type(Gtk.ShadowType.OUT)
 		frame_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
 		dow_frame.add(frame_box)
 		label=Gtk.Label(_("Days of week"))
 		frame_box.add(label)
+		frame_box.set_margin_bottom(6)
+		frame_box.set_margin_top(6)
+		frame_box.set_margin_left(6)
+		frame_box.set_margin_right(6)
 		dow_box=Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-		frame_box.add(dow_box)
-		gtkGrid.attach(dow_frame,1,1,1,15)
 		work_days_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-		dow_box.add(work_days_box)
 		work_days_box.add(self.chk_monday)
 		work_days_box.add(self.chk_tuesday)
 		work_days_box.add(self.chk_wednesday)
@@ -196,36 +196,39 @@ class TaskDetails:
 		work_days_box.add(self.chk_friday)
 		work_days_box.set_focus_chain([self.chk_monday,self.chk_tuesday,self.chk_wednesday,self.chk_thursday,\
 						self.chk_friday])
+		dow_box.add(work_days_box)
 		weekend_days_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 		dow_box.add(weekend_days_box)
 		weekend_days_box.add(self.chk_saturday)
 		weekend_days_box.add(self.chk_sunday)
 		weekend_days_box.set_focus_chain([self.chk_saturday,self.chk_sunday])
 		dow_box.set_focus_chain([work_days_box,weekend_days_box])
+		frame_box.add(dow_box)
+		gtkGrid.attach(dow_frame,0,1,1,6)
 		label=Gtk.Label(_("Time & date"))
 		label.set_margin_bottom(WIDGET_MARGIN)
-		gtkGrid.attach(label,2,2,2,1)
+		gtkGrid.attach(label,1,1,1,1)
 		gtkGrid.attach_next_to(self.hour_box,label,Gtk.PositionType.BOTTOM,1,1)
 		gtkGrid.attach_next_to(self.minute_box,self.hour_box,Gtk.PositionType.BOTTOM,1,1)
 		gtkGrid.attach_next_to(self.month_box,self.minute_box,Gtk.PositionType.BOTTOM,1,1)
 		gtkGrid.attach_next_to(self.day_box,self.month_box,Gtk.PositionType.BOTTOM,1,1)
 		label=Gtk.Label(_("Time intervals"))
 		label.set_margin_bottom(WIDGET_MARGIN)
-		gtkGrid.attach(label,4,2,2,1)
+		gtkGrid.attach(label,2,1,2,1)
 		gtkGrid.attach_next_to(self.chk_interval,label,Gtk.PositionType.BOTTOM,1,1)
 		self.interval_box=Gtk.Box()
 		self.interval_box.add(Gtk.Label(_("Each")))
 		self.interval_box.add(self.cmb_interval)
 		self.interval_box.add(self.cmb_dates)
 		gtkGrid.attach_next_to(self.interval_box,self.chk_interval,Gtk.PositionType.BOTTOM,1,1)
-		gtkGrid.attach_next_to(self.chk_special_dates,self.interval_box,Gtk.PositionType.BOTTOM,2,1)
-		gtkGrid.attach_next_to(self.cmb_special_dates,self.chk_special_dates,Gtk.PositionType.BOTTOM,1,1)
+		gtkGrid.attach_next_to(self.chk_special_dates,self.interval_box,Gtk.PositionType.BOTTOM,1,1)
 		if btn_apply:
-			gtkGrid.attach(self.btn_apply,5,15,1,1)
-#			self.btn_apply.connect("clicked",self.update_task_details)
+			self.btn_apply.set_halign(Gtk.Align.END)
+			self.btn_apply.set_valign(Gtk.Align.END)
+			gtkGrid.attach(self.btn_apply,4,6,2,1)
 		#Tab order chain
 		widget_array=[dow_frame,self.hour_box,self.minute_box,self.month_box,self.day_box,self.chk_interval,\
-						self.interval_box,self.chk_special_dates,self.cmb_special_dates]
+						self.interval_box,self.chk_special_dates]
 		if btn_apply:
 			widget_array.append(self.btn_apply)
 
@@ -238,7 +241,6 @@ class TaskDetails:
 		#handled signals
 		interval_handler=self.cmb_interval.connect("changed",self._parse_scheduled)
 		#Signals
-		gtkGrid.connect("event",self._parse_scheduled)
 		self.chk_monday.connect("toggled",self._enable_fixed_dates,interval_handler)
 		self.chk_thursday.connect("toggled",self._enable_fixed_dates,interval_handler)
 		self.chk_wednesday.connect("toggled",self._enable_fixed_dates,interval_handler)
@@ -249,19 +251,23 @@ class TaskDetails:
 		self.chk_interval.connect("toggled",self._chk_interval_status)
 		self.chk_special_dates.connect("toggled",self._chk_special_dates_status)
 		self.cmb_dates.connect("changed",self._load_interval_data,interval_handler)
-		self.cmb_months.connect("changed",self._parse_scheduled)
-		self.cmb_days.connect("changed",self._parse_scheduled)
-		self.cmb_hours.connect("changed",self._parse_scheduled)
-		self.cmb_minutes.connect("changed",self._parse_scheduled)
+		self.cmb_handler={}
+		self.cmb_handler[self.cmb_months]=self.cmb_months.connect("changed",self._parse_scheduled)
+		self.cmb_handler[self.cmb_days]=self.cmb_days.connect("changed",self._parse_scheduled)
+		self.cmb_handler[self.cmb_hours]=self.cmb_hours.connect("changed",self._parse_scheduled)
+		self.cmb_handler[self.cmb_minutes]=self.cmb_minutes.connect("changed",self._parse_scheduled)
+		gtkGrid.connect("event",self._parse_scheduled)
 
 		#Initial control status
 		self.interval_box.set_sensitive(False)
-		self.cmb_special_dates.set_sensitive(False)
+#		self.cmb_special_dates.set_sensitive(False)
 		#signals
 		return (gtkGrid)
 
 	def load_task_details(self,task_name,task_serial,task_data,task_type):
 		self.clear_screen()
+		for widget,handler in self.cmb_handler.items():
+			widget.handler_block(handler)
 		self.task_name=task_name
 		self.task_serial=task_serial
 		self.task_cmd=task_data['cmd']
@@ -284,6 +290,10 @@ class TaskDetails:
 					'3':self.chk_wednesday,'4':self.chk_thursday,'5':self.chk_friday,\
 					'6':self.chk_saturday,'7':self.chk_sunday}
 		self._parse_date_details(task_data['dow'],None,'dow',widget_dict)
+		if 'lmd' in task_data.keys():
+			self.chk_special_dates.set_active(True)
+		for widget,handler in self.cmb_handler.items():
+			widget.handler_unblock(handler)
 	#def load_task_details
 
 	def _parse_date_details(self,date,widget=None,date_type=None,widget_dict=None):
@@ -349,29 +359,28 @@ class TaskDetails:
 				self._set_sensitive_widget({self.day_box:not self._get_days_active(),\
 						self.month_box:False,self.hour_box:True})
 				self._set_days_sensitive(True)
+		self._chk_special_dates_status()
 	#def _changed_interval
 
 
 	def _chk_interval_status(self,widget):
 		if self.chk_interval.get_active():
-			self._set_sensitive_widget({self.interval_box:True,self.cmb_special_dates:False,\
+			self._set_sensitive_widget({self.interval_box:True,\
 				self.hour_box:False,self.month_box:True,self.day_box:not self._get_days_active()})
 			self._changed_interval()
 		else:
-			self._set_sensitive_widget({self.interval_box:False,self.cmb_special_dates:True,\
+			self._set_sensitive_widget({self.interval_box:False,\
 				self.hour_box:True,self.month_box:True,self.day_box:not self._get_days_active()})
-			self._chk_special_dates_status()
+		self._chk_special_dates_status()
 #		self._parse_scheduled()
 	#def _chk_interval_status
 			
 	def _chk_special_dates_status(self,widget=None):
 		if self.chk_special_dates.get_active():
-			self._set_sensitive_widget({self.cmb_special_dates:True,self.day_box:False,\
-				self.chk_interval:False})
+			self._set_sensitive_widget({self.hour_box:True,self.month_box:True,self.day_box:False})
 			self._set_days_sensitive(False)
 		else:
-			self._set_sensitive_widget({self.cmb_special_dates:False,self.chk_interval:True,\
-				self.day_box:not self._get_days_active()})
+			self._set_sensitive_widget({self.day_box:not self._get_days_active()})
 			self._set_days_sensitive(True)
 	#def _chk_special_dates_status
 
@@ -410,6 +419,8 @@ class TaskDetails:
 	#def _enable_fixed_dates
 
 	def _set_days_sensitive(self,state):
+		if self.chk_special_dates.get_active():
+			state=False
 		widgets=[self.chk_monday,
 				self.chk_thursday,
 				self.chk_wednesday,
@@ -462,11 +473,15 @@ class TaskDetails:
 			if self.cmb_dates.get_active_text()==_('month(s)'):
 				details['mon']="1/"+self.cmb_interval.get_active_text()
 		details['hidden']=0
+		if self.chk_special_dates.get_active():
+			details['lmd']=1
+			details['dom']='*'
+			details['dow']='*'
 		return details
 	#def _parse_screen
 
 	def _parse_scheduled(self,container=None,widget=None):
-		GObject.timeout_add(1000,self._parse_screen)
+#		GObject.timeout_add(1000,self._parse_screen)
 		details=self._parse_screen()
 		self.lbl_info.set_text("Task schedule: "+(self.parser.parse_taskData(details)))
 
@@ -487,6 +502,8 @@ class TaskDetails:
 			self.task_type=task_type
 		details=self._parse_screen()
 		details['cmd']=self.task_cmd
+		if 'lmd' in details.keys():
+			details['cmd']='/usr/sbin/sched_helper.sh '+details['cmd']
 		task={}
 		task[self.task_name]={self.task_serial:details}
 		self._debug("Saving %s"%task)
@@ -530,13 +547,9 @@ class TaskScheduler:
 #		self.login=builder.get_object("login_box")
 		self.login=N4dGtkLogin()
 		self.login.set_info_text("Task Scheduler","Programador de tareas","Bienvenido al programador de tareas para Lliurex.\nDesde aquí puedes:\n<sub>* Programar tareas en el equipo local\n* Distribuir una tarea a los equipos de la red\n*Consultar las tareas programadas</sub>")
-#		self.login.set_info_text_fg("white")
-#		infobox=self.login.get_action_area()
-#		infobox.add(Gtk.Label("Prueba"))
-		self.login.set_info_background(from_color='#FFFFFF',to_color='#EEDD00')
+		self.login.set_info_background(from_color='#FFFFFF',to_color='#EEDD00',gradient='radial')
 		self.login.after_validation_goto(self._signin)
 		self.loginBox=self.login.render_form()
-#		self.main_box.add(self.login)
 		self.inf_message=Gtk.InfoBar()
 		self.inf_message.set_show_close_button(True)
 		self.lbl_message=Gtk.Label("")
@@ -747,12 +760,14 @@ class TaskScheduler:
 		self.tasks_store.clear()
 		if type(tasks)==type([]):	
 			for task in tasks:
+
 				for task_name,task_serialized in task.items():
 					self.scheduled_tasks[task_name]=task_serialized
 					for serial,task in task_serialized.items():
 						parser=cronParser()
 						parsed_calendar=''
 						parsed_calendar=parser.parse_taskData(task)
+						task['cmd']=task['cmd'].replace('/usr/sbin/sched_helper.sh ','')
 						self.tasks_store.append(("<span font='Roboto'><b>"+task['cmd']+"</b></span>\n"+\
 									"<span font='Roboto' size='small'><i>"+\
 									task_name+"</i></span>",serial,"<span font='Roboto' size='small'>"+\
@@ -792,7 +807,7 @@ class TaskScheduler:
 				widget.set_sensitive(False)
 			self.inf_question.set_sensitive(True)
 			self.inf_question.show_all()
-			self.inf_question.connect('response',self.manage_remove_responses,model,task_name,task_serial,task_cmd,task_type)
+			self.inf_question.connect('response',self.manage_remove_responses,model,task_name,task_serial,task_cmd,task_type,data)
 	#def task_clicked			
 
 	def save_task_details(self,widget):
@@ -842,6 +857,12 @@ class TaskScheduler:
 	#def view_tasks_clicked	
 
 	def load_add_task_details(self):
+		if self.btn_remote_tasks.get_active():
+			self.chk_remote.set_active(1)
+			self.chk_local.set_active(0)
+		else:
+			self.chk_local.set_active(1)
+			self.chk_remote.set_active(0)
 		self._block_widget_state(False,self.btn_remote_tasks,self.handler_remote)
 		self._block_widget_state(False,self.btn_local_tasks,self.handler_local)
 		tasks=[]
@@ -857,15 +878,9 @@ class TaskScheduler:
 		self.cmb_task_names.connect('changed',self.load_add_task_details_cmds,tasks)
 		self.cmb_task_names.set_active(0)
 
-		if self.btn_remote_tasks.get_active():
-			self.chk_remote.set_active(1)
-			self.chk_local.set_active(0)
-		else:
-			self.chk_local.set_active(1)
-			self.chk_remote.set_active(0)
-		if self.flavour!='server':
-			self.chk_remote.set_sensitive(False)
-			self.chk_remote.set_active(0)
+#		if self.flavour!='server':
+#			self.chk_remote.set_sensitive(False)
+#			self.chk_remote.set_active(0)
 	#def load_add_task_details
 
 	def load_add_task_details_cmds(self,widget,tasks):
@@ -883,6 +898,7 @@ class TaskScheduler:
 	
 	def add_task_clicked(self,widget,event):
 		self._debug("Loading new task form")
+		self.add_task_grid.clear_screen()
 		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
 		self.stack.set_visible_child_name("add")
 		self.load_add_task_details()
@@ -893,16 +909,11 @@ class TaskScheduler:
 		self.stack.set_visible_child_name("tasks")	
 	#def cancel_add_clicked
 
-	def manage_remove_responses(self,widget,response,model,task_name,task_serial,task_cmd,task_type):
+	def manage_remove_responses(self,widget,response,model,task_name,task_serial,task_cmd,task_type,data):
 		if response==Gtk.ResponseType.OK:
 			self.scheduler_client.remove_task(task_name,task_serial,task_cmd,task_type)
-		#filter doesn't support remove so it's needed to get the filter iter and remove it on the parent model
-			tasks_ts=self.tasks_tv.get_selection()
-			(tm,path)=tasks_ts.get_selected_rows()
-			child_path=model.convert_path_to_child_path(path[0])
-			iterr=self.tasks_store.get_iter(child_path)
-			self.tasks_store.remove(iterr)
 			self.populate_tasks_tv(task_type)
+			self.tasks_tv.set_cursor(0)
 		self.inf_question.hide()
 		for widget in self.main_box.get_children():
 			widget.set_sensitive(True)
