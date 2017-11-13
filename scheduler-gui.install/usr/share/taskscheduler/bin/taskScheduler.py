@@ -1,4 +1,5 @@
 #! /usr/bin/python3
+# -*- coding: utf-8 -*-
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('PangoCairo', '1.0')
@@ -546,7 +547,8 @@ class TaskScheduler:
 		self.main_box=builder.get_object("main_box")
 #		self.login=builder.get_object("login_box")
 		self.login=N4dGtkLogin()
-		self.login.set_info_text("<span foreground='black'>Task Scheduler</span>","Programador de tareas","<span foreground='black'>Bienvenido al programador de tareas para Lliurex.\nDesde aquí puedes:\n<sub>* Programar tareas en el equipo local\n* Distribuir una tarea a los equipos de la red\n*Consultar las tareas programadas</sub></span>")
+		desc=_("Welcome to the Task Scheduler for Lliurex.\nFrom here you can:\n<sub>* Schedule tasks in the local pc\n* Distribute tasks among all the pcs in the network\n*Show scheduled tasks</sub>")
+		self.login.set_info_text("<span foreground='black'>Task Scheduler</span>",_("Task Scheduler"),"<span foreground='black'>"+desc+"</span>")
 #		self.login.set_info_background(from_color='#FFFFFF',to_color='#EEDD00',gradient='radial')
 #		self.login.set_info_background(image='/usr/share/backgrounds/lliurex/lliurex16-classroom.png',cover=True)
 		self.login.set_info_background(image='/usr/share/backgrounds/lliurex/lliurex-blueprint.png',cover=True)
