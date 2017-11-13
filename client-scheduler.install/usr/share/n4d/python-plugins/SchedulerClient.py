@@ -45,7 +45,11 @@ class SchedulerClient():
 				n4d=xmlrpc.ServerProxy("https://server:9779")
 			else:
 				n4d=xmlrpc.ServerProxy("https://localhost:9779")
-			tasks=n4d.get_tasks("","ServerScheduler",prefix)
+			tasks=n4d.get_tasks("","SchedulerServer",prefix)
+			#Delete files
+			for f in os.listdir(self.cron_dir):
+				if f.startswith(prefix):
+					os.remove(self.cron_dir+'/'+f)
 			#Create the cron files
 			task_names={}
 			for task in tasks:
@@ -55,12 +59,6 @@ class SchedulerClient():
 					task_names[fname]=task
 					self._write_crontab_for_task(task_names[fname],prefix)
 
-			#If a file is not in tasks delete it
-			for f in os.listdir(self.cron_dir):
-				if f.startswith(prefix):
-					fname=f.replace(prefix,'')
-					if fname not in task_names.keys():
-						os.remove(cron_dir+'/'+f)
 	#def process_tasks
 
 	def _write_crontab_for_task(self,ftask,prefix):
