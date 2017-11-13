@@ -9,7 +9,7 @@ class cronParser():
 					'to':_('to'),'and':_('and'),'the':_('the'),'in':_('in'),\
 					'atm':_("at minute"),'min':_("minutes"),'emin':_('each minute'),'tmin':_('the minute'),\
 					'ehour':_("each hour"),'h':_("hours"),'hoc':_("o'clock"),'evhour':_('every hour'),\
-					'evday':_('everyday'),'lmd':_("last month day"),'eday':_("each day"),'days':_('days'),\
+					'evday':_('everyday'),'lmd':_("last day"),'eday':_("each day"),'days':_('days'),\
 					'day':_('day'),'evmon':_('every month'),'emon':_("each month"),'months':_('months'),\
 					'evweek':_("every week"),'weeks':_("weeks"),'eweek':_("weekly")}
 			self.dbg=0
