@@ -260,11 +260,118 @@
       </packing>
     </child>
   </object>
+  <object class="GtkBox" id="login_box">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="hexpand">False</property>
+    <property name="vexpand">False</property>
+    <property name="orientation">vertical</property>
+    <child>
+      <object class="GtkBox" id="box2">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="halign">center</property>
+        <property name="hexpand">True</property>
+        <property name="resize_mode">queue</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkButton" id="btn_access">
+            <property name="label">gtk-go-forward</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <property name="halign">end</property>
+            <property name="hexpand">False</property>
+            <property name="use_stock">True</property>
+            <property name="xalign">0.57999998331069946</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="padding">6</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image1">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="padding">6</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkEntry" id="txt_username">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="halign">center</property>
+            <property name="hexpand">True</property>
+            <property name="vexpand">False</property>
+            <property name="primary_icon_name">emblem-personal</property>
+            <property name="placeholder_text" translatable="yes">Username</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="padding">6</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkEntry" id="txt_password">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="halign">center</property>
+            <property name="hexpand">True</property>
+            <property name="primary_icon_name">badge-small</property>
+            <property name="placeholder_text" translatable="yes">Password</property>
+            <property name="input_purpose">password</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="padding">6</property>
+            <property name="position">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkEntry" id="txt_server">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="halign">center</property>
+            <property name="hexpand">True</property>
+            <property name="primary_icon_name">server</property>
+            <property name="placeholder_text" translatable="yes">Server IP    (Default value : server)</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="padding">6</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+      </object>
+      <packing>
+        <property name="expand">False</property>
+        <property name="fill">True</property>
+        <property name="padding">6</property>
+        <property name="position">0</property>
+      </packing>
+    </child>
+    <child>
+      <placeholder/>
+    </child>
+  </object>
   <object class="GtkWindow" id="main_window">
-    <property name="width_request">640</property>
-    <property name="height_request">680</property>
     <property name="can_focus">False</property>
     <property name="opacity">0.98039215686274506</property>
+    <property name="valign">start</property>
     <property name="hexpand">True</property>
     <property name="resizable">False</property>
     <property name="window_position">center</property>
@@ -272,10 +379,8 @@
       <object class="GtkBox" id="box5">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="valign">start</property>
         <property name="orientation">vertical</property>
-        <child>
-          <placeholder/>
-        </child>
         <child>
           <object class="GtkBox" id="main_box">
             <property name="visible">True</property>
@@ -484,6 +589,7 @@
         <property name="margin_right">15</property>
         <property name="margin_top">20</property>
         <property name="margin_bottom">10</property>
+        <property name="hexpand">True</property>
         <property name="vexpand">True</property>
         <property name="orientation">vertical</property>
         <child>
@@ -493,7 +599,7 @@
             <property name="halign">center</property>
             <property name="margin_top">5</property>
             <property name="hexpand">True</property>
-            <property name="column_spacing">5</property>
+            <property name="column_spacing">12</property>
             <child>
               <placeholder/>
             </child>
@@ -524,7 +630,7 @@
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">True</property>
+            <property name="fill">False</property>
             <property name="position">2</property>
           </packing>
         </child>

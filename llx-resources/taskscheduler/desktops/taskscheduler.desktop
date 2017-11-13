@@ -1,0 +1,15 @@
+[Desktop Entry]
+Name=TaskScheduler
+GenericName=TaskScheduler
+X-GNOME-FullName=Lliurex Task Scheduler
+Comment=Schedule predefined tasks
+Exec=taskscheduler
+Terminal=false
+Type=Application
+Icon=taskscheduler
+Name[ca_ES.UTF-8@valencia]=TaskScheduler, programa tasques predefinides
+Name[ca_ES@valencia]=TaskScheduler, programa tasques predefinides
+Name[ca]=TaskScheduler, programa tasques predefinides
+Name[es]=TaskScheduler, programa tareas predefinidas
+Categories=GNOME;GTK;Administration;
+TryExec=/usr/bin/taskscheduler

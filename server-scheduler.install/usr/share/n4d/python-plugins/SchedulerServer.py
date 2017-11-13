@@ -8,15 +8,13 @@
 import os
 import json
 
-class ServerScheduler():
+class SchedulerServer():
 	def __init__(self):
-		self.dbg=1
+		self.dbg=0
 		self.taskDir="/etc/scheduler/tasks.d"
 		self.schedTasksDir=self.taskDir+"/scheduled"
 		self.remote_tasks_dir=self.schedTasksDir+"/remote"
-		self.crondir="/etc/cron.d"
-		self.cronPrefix="scheduler-"
-		self.status=0
+		self.local_tasks_dir=self.schedTasksDir+"/local"
 		self.errormsg=''
 		sw_readErr=False
 	#def __init__
@@ -26,9 +24,9 @@ class ServerScheduler():
 			print("Scheduler: %s" % msg)
 	#def _debug
 
-	def get_tasks(self):
+	def get_tasks(self,task_type):
 		scheduled_tasks=[]
-		wrkfiles=self._get_wrkfiles()
+		wrkfiles=self._get_wrkfiles(task_type)
 		for wrkfile in wrkfiles:
 			content=self._read_tasks_file(wrkfile)
 			if not self.readErr:
@@ -38,13 +36,17 @@ class ServerScheduler():
 		return(scheduled_tasks)
 	#def get_tasks
 
-	def _get_wrkfiles(self):
-		if not os.path.isdir(self.remote_tasks_dir):
-			os.makedirs(self.remote_tasks_dir)
+	def _get_wrkfiles(self,task_type):
+		if task_type=='local':
+			wrk_dir=self.local_tasks_dir
+		else:
+			wrk_dir=self.remote_tasks_dir
+		if not os.path.isdir(wrk_dir):
+			os.makedirs(wrk_dir)
 
 		wrkfiles=[]
-		for f in os.listdir(self.remote_tasks_dir):
-			wrkfiles.append(self.remote_tasks_dir+'/'+f)
+		for f in os.listdir(wrk_dir):
+			wrkfiles.append(wrk_dir+'/'+f)
 		return wrkfiles
 
 	def _read_tasks_file(self,wrkfile):
@@ -61,10 +63,15 @@ class ServerScheduler():
 		return(tasks)
 	#def _read_tasks_file
 	
-	def remove_task(self,task_name,task_serial,task_cmd):
+	def remove_task(self,task_type,task_name,task_serial,task_cmd):
+		if task_type=='local':
+			wrk_dir=self.local_tasks_dir
+		else:
+			wrk_dir=self.remote_tasks_dir
 		self._debug("Removing task from system")
 		sw_del=False
-		wrkfile=self.remote_tasks_dir+'/'+task_name
+		msg=''
+		wrkfile=wrk_dir+'/'+task_name
 		wrkfile=wrkfile.replace(' ','_')
 		task=self._read_tasks_file(wrkfile)
 		if task_name in task.keys():
@@ -78,7 +85,7 @@ class ServerScheduler():
 			with open(wrkfile,'w') as json_data:
 				json.dump(task,json_data,indent=4)
 			self._register_cron_update()
-		return True
+		return ({'status':sw_del,'msg':msg})
 
 	def _serialize_task(self,task):
 		serial_task={}
@@ -90,17 +97,23 @@ class ServerScheduler():
 				cont+=1
 		return(serial_task)
 
-	def write_tasks(self,tasks):
-		self._debug("Writing remote task info")
+	def write_tasks(self,task_type,tasks):
+		if task_type=='local':
+			wrk_dir=self.local_tasks_dir
+		else:
+			wrk_dir=self.remote_tasks_dir
+		self._debug("Writing task info")
+		msg=''
+		status=True
 		task_name=list(tasks.keys())[0]
 		task_serial=list(tasks[task_name].keys())[0]
 		self._debug(tasks)
 		serialized_task={}
 		sched_tasks={}
-		if not os.path.isdir(self.remote_tasks_dir):
-			os.makedirs(self.remote_tasks_dir)
+		if not os.path.isdir(wrk_dir):
+			os.makedirs(wrk_dir)
 
-		wrkfile=self.remote_tasks_dir+'/'+task_name
+		wrkfile=wrk_dir+'/'+task_name
 		wrkfile=wrkfile.replace(' ','_')
 		if os.path.isfile(wrkfile):
 			sched_tasks=json.loads(open(wrkfile).read())
@@ -124,9 +137,11 @@ class ServerScheduler():
 			with open(wrkfile,'w') as json_data:
 				json.dump(sched_tasks,json_data,indent=4)
 		except Exception as e:
-			print(e)
+			msg=e
+			status=False
 		self._register_cron_update()
 		self._debug("%s updated" % task_name)
+		return({'status':status,'msg':msg})
 	#def write_tasks
 
 	def _register_cron_update(self):

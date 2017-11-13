@@ -14,7 +14,7 @@ class SchedulerClient():
 		self.task_prefix='remote-' #Temp workaround->Must be declared on a n4d var
 		self.cron_dir='/etc/cron.d'
 		self.count=0
-		self.dbg=1
+		self.dbg=0
 
 	def startup(self,options):
 		t=threading.Thread(target=self._main_thread)
@@ -39,29 +39,34 @@ class SchedulerClient():
 
 	def process_tasks(self,data=None):
 		self._debug("Scheduling tasks")
-		n4d=xmlrpc.ServerProxy("https://server:9779")
-		tasks=n4d.get_tasks("","ServerScheduler")
-		#Create the cron files
-		task_names={}
-		for task in tasks:
-			for name in task.keys():
-				self._debug("Scheduling %s"%name)
-				fname=name.replace(' ','_')
-				task_names[fname]=task
-				self._write_crontab_for_task(task_names[fname])
+		prefixes=['remote','local']
+		for prefix in prefixes:
+			if prefix=='remote':
+				n4d=xmlrpc.ServerProxy("https://server:9779")
+			else:
+				n4d=xmlrpc.ServerProxy("https://localhost:9779")
+			tasks=n4d.get_tasks("","ServerScheduler",prefix)
+			#Create the cron files
+			task_names={}
+			for task in tasks:
+				for name in task.keys():
+					self._debug("Scheduling %s"%name)
+					fname=name.replace(' ','_')
+					task_names[fname]=task
+					self._write_crontab_for_task(task_names[fname],prefix)
 
-		#If a file is not in tasks delete it
-		for f in os.listdir(self.cron_dir):
-			if f.startswith(self.task_prefix):
-				fname=f.replace(self.task_prefix,'')
-				if fname not in task_names.keys():
-					os.remove(cron_dir+'/'+f)
+			#If a file is not in tasks delete it
+			for f in os.listdir(self.cron_dir):
+				if f.startswith(prefix):
+					fname=f.replace(prefix,'')
+					if fname not in task_names.keys():
+						os.remove(cron_dir+'/'+f)
 	#def process_tasks
 
-	def _write_crontab_for_task(self,ftask):
+	def _write_crontab_for_task(self,ftask,prefix):
 		task=list(ftask.keys())[0]
 		for task_name,task_data in ftask.items():
-			fname=self.cron_dir+'/'+self.task_prefix+task_name.replace(' ','_')
+			fname=self.cron_dir+'/'+prefix+task_name.replace(' ','_')
 			cron_array=[]
 			for task_serial,task_info in task_data.items():
 				cron_task=("%s %s %s %s %s %s"%(task_info['m'],task_info['h'],task_info['dom'],\
