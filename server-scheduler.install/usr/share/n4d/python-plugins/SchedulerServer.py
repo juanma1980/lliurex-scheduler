@@ -13,8 +13,9 @@ class SchedulerServer():
 		self.dbg=0
 		self.taskDir="/etc/scheduler/tasks.d"
 		self.schedTasksDir=self.taskDir+"/scheduled"
-		self.remote_tasks_dir=self.schedTasksDir+"/remote"
-		self.local_tasks_dir=self.schedTasksDir+"/local"
+		self.custom_tasks="/etc/scheduler/conf.d/custom.json"
+		self.remote_tasks_dir=self.taskDir+"/remote"
+		self.local_tasks_dir=self.taskDir+"/local"
 		self.errormsg=''
 		sw_readErr=False
 	#def __init__
@@ -143,6 +144,18 @@ class SchedulerServer():
 		self._debug("%s updated" % task_name)
 		return({'status':status,'msg':msg})
 	#def write_tasks
+
+	def write_custom_task(self,cmd_name,cmd,parms):
+		tasks={}
+		new_task={}
+		if os.path.isfile(self.custom_tasks):
+			tasks=json.loads(open(self.custom_tasks).read())
+		else:
+			tasks['custom']={}
+		new_task[cmd_name]=cmd+' '+parms
+		tasks['custom'].update(new_task)
+		with open(self.custom_tasks,'w') as json_data:
+			json.dump(tasks,json_data,indent=4)
 
 	def _register_cron_update(self):
 		self._debug("Registering trigger var")
