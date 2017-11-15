@@ -45,10 +45,12 @@ class TaskDetails:
 			self.flavour=subprocess.getoutput("lliurex-version -f")
 		except:
 			self.flavour="client"
+		self.ldm_helper='/usr/sbin/sched-ldm.sh'
 
 	def _debug(self,msg):
 		if DBG:
 			print("taskDetails: %s"%msg)
+	#def _debug
 
 	def _format_widget_for_grid(self,widget):
 		#common
@@ -62,6 +64,7 @@ class TaskDetails:
 			widget.set_max_length(2)
 			widget.set_width_chars(2)
 			widget.set_max_width_chars(3)
+	#def _format_widget_for_grid
 
 	def _load_interval_data(self,widget=None,handler=None):
 		if handler:
@@ -92,18 +95,21 @@ class TaskDetails:
 		if handler:
 			self.cmb_interval.handler_unblock(handler)
 			self._parse_scheduled(True)
+	#def _load_interval_data
 	
 	def _load_date_data(self):
 		date=[_("hour(s)"),_("day(s)"),_("week(s)"),_("month(s)")]
 		for i in date:
 			self.cmb_dates.append_text(i)
 		self.cmb_dates.set_active(0)
+	#def _load_date_data
 	
 	def _load_special_date_data(self):
 		date=[_("Last month day"),_("First month day")]
 		for i in date:
 			self.cmb_special_dates.append_text(i)
 		self.cmb_special_dates.set_active(0)
+	#def _load_special_date_data
 
 	def _load_date_time_data(self,date_type):
 		inc=0
@@ -134,6 +140,7 @@ class TaskDetails:
 			else:
 				widget.append_text(str(i+inc))
 		widget.set_active(0)
+	#def _load_date_time_data
 
 	def render_form(self,gtkGrid,btn_apply=True):
 		self.chk_monday=Gtk.ToggleButton(_("Monday"))
@@ -263,6 +270,7 @@ class TaskDetails:
 		self.interval_box.set_sensitive(False)
 		#signals
 		return (gtkGrid)
+	#def render_form
 
 	def load_task_details(self,task_name,task_serial,task_data,task_type):
 		self.clear_screen()
@@ -340,10 +348,12 @@ class TaskDetails:
 		self.cmb_dates.set_active(0)
 		self.chk_special_dates.set_active(False)
 		self.chk_interval.set_active(False)
+	#def clear_screen
 	
 	def _set_sensitive_widget(self,widget_dic):
 		for widget,status in widget_dic.items():
 			widget.set_sensitive(status)
+	#def _set_sensitive_widget
 	
 	def _changed_interval(self):
 		if self.chk_interval.get_active():
@@ -482,6 +492,7 @@ class TaskDetails:
 	def _parse_scheduled(self,container=None,widget=None):
 		details=self._parse_screen()
 		self.lbl_info.set_text("Task schedule: "+(self.parser.parse_taskData(details)))
+	#def _parse_scheduled
 
 	def update_task_details(self,widget=None):
 		if self.task_name and self.task_serial:
@@ -501,11 +512,12 @@ class TaskDetails:
 		details=self._parse_screen()
 		details['cmd']=self.scheduler_client.get_task_command(self.task_cmd)
 		if 'lmd' in details.keys():
-			details['cmd']='/usr/sbin/sched_helper.sh '+details['cmd']
+			details['cmd']=self.ldm_helper+' '+details['cmd']
 		task={}
 		task[self.task_name]={self.task_serial:details}
 		self._debug("Saving %s"%task)
 		return task
+	#def get_task_details
 
 class TaskScheduler:
 	def __init__(self):
@@ -515,12 +527,14 @@ class TaskScheduler:
 		except:
 			self.flavour="client"
 		self.last_task_type='remote'
+		self.ldm_helper='/usr/sbin/sched-ldm.sh'
 			
 	#def __init__		
 
 	def _debug(self,msg):
 		if DBG:
 			print("taskScheduler: %s"%msg)
+	#def _debug
 
 	def is_scheduler_running(self):
 		if os.path.exists(LOCK_PATH):
@@ -528,6 +542,7 @@ class TaskScheduler:
 			dialog.format_secondary_text(_("There's another instance of Task Scheduler running."))
 			dialog.run()
 			sys.exit(1)
+	#def is_scheduler_running
 
 	def start_gui(self):
 		self.scheduler_client=scheduler()
@@ -682,6 +697,7 @@ class TaskScheduler:
 		builder.get_object("btn_confirm_add").connect("clicked", self.save_task_details)
 		self.chk_remote=builder.get_object("swt_remote")
 		self.chk_local=builder.get_object("swt_local")
+	#def _load_task_list_gui
 
 	def _load_manage_tasks(self,builder):
 		self.manage_box=builder.get_object("manage_box")
@@ -723,6 +739,7 @@ class TaskScheduler:
 		self.btn_apply_manage.connect("clicked",self._add_custom_task,txt_taskname,cmb_cmds,txt_params,chk_parm_is_file,btn_file)
 		self.btn_cancel_manage=builder.get_object("btn_cancel_manage")
 		self.btn_cancel_manage.connect("clicked",self._cancel_manage_clicked)
+	#def _load_manage_tasks
 	
 	def _enable_filechooser(self,widget,filechooser):
 		if widget.get_active():
@@ -766,7 +783,7 @@ class TaskScheduler:
 						parser=cronParser()
 						parsed_calendar=''
 						parsed_calendar=parser.parse_taskData(task)
-						task['cmd']=task['cmd'].replace('/usr/sbin/sched_helper.sh ','')
+						task['cmd']=task['cmd'].replace(self.ldm_helper+' ','')
 						task['action']=self.scheduler_client.get_task_description(task['cmd'])
 						self.tasks_store.append(("<span font='Roboto'><b>"+task['action']+"</b></span>\n"+\
 									"<span font='Roboto' size='small'><i>"+\
