@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-11-15 16:08+0100\n"
+"POT-Creation-Date: 2017-11-15 16:16+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -67,55 +67,51 @@ msgstr ""
 msgid "Add a task"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:301
-msgid "toolbutton"
-msgstr ""
-
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:314
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:313
 msgid "Reload tasks"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:327
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:326
 msgid "Manage custom commands"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:350
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:349
 msgid "Show remote tasks"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:354
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:353
 msgid "Show tasks scheduled for the clients"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:364
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:584
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:363
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:583
 msgid "Show local tasks"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:368
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:367
 msgid "Show tasks scheduled for this computer"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:393
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:392
 msgid "Search a task"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:457
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:456
 msgid ""
 "From here you can define new commands to cover your needs.\n"
 "Put a descriptive task name, select the command and set the required "
 "parameters (if any) and the file that the command needs to launch (if any)."
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:574
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:573
 msgid "Show the remote tasks"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:575
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:574
 msgid "show remote tasks"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:583
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:582
 msgid "show the local tasks"
 msgstr ""
 

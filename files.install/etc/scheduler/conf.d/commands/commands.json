@@ -1,0 +1,4 @@
+{
+	"Play sound":"ffplay -nodisp",
+	"Reminder":"export DISPLAY=:0 && notify-send -u normal -i taskscheduler"
+}

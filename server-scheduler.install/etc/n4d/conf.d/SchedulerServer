@@ -7,3 +7,4 @@ write_tasks=adm,admins,teachers
 write_custom_task=adm,admins,teachers
 remove_task=adm,admins,teachers
 get_tasks=*,anonymous
+get_available_tasks=*,anonymous

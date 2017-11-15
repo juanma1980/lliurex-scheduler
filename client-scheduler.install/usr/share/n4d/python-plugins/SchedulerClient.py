@@ -45,7 +45,7 @@ class SchedulerClient():
 				n4d=xmlrpc.ServerProxy("https://server:9779")
 			else:
 				n4d=xmlrpc.ServerProxy("https://localhost:9779")
-			tasks=n4d.get_tasks("","SchedulerServer",prefix)
+			tasks=n4d.get_tasks("","SchedulerServer",prefix)['data']
 			#Delete files
 			for f in os.listdir(self.cron_dir):
 				if f.startswith(prefix):
