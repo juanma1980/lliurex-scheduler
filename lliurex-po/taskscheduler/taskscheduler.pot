@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-11-14 14:39+0100\n"
+"POT-Creation-Date: 2017-11-15 16:08+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,8 +30,8 @@ msgid "Select available tasks"
 msgstr ""
 
 #: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:58
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:665
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:702
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:664
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:703
 msgid "Command"
 msgstr ""
 
@@ -88,7 +88,7 @@ msgid "Show tasks scheduled for the clients"
 msgstr ""
 
 #: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:364
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:589
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:584
 msgid "Show local tasks"
 msgstr ""
 
@@ -107,15 +107,15 @@ msgid ""
 "parameters (if any) and the file that the command needs to launch (if any)."
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:579
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:574
 msgid "Show the remote tasks"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:580
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:575
 msgid "show remote tasks"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:588
+#: ../scheduler-gui.install/usr/share/taskscheduler/rsrc/taskScheduler.ui:583
 msgid "show the local tasks"
 msgstr ""
 
@@ -247,11 +247,11 @@ msgstr ""
 msgid "Each"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:527
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:528
 msgid "There's another instance of Task Scheduler running."
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:546
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:547
 msgid ""
 "Welcome to the Task Scheduler for Lliurex.\n"
 "From here you can:\n"
@@ -260,32 +260,32 @@ msgid ""
 "*Show scheduled tasks</sub>"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:547
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:548
 msgid "Task Scheduler"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:634
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:633
 msgid "Task"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:641
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:640
 msgid "Serial"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:649
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:648
 msgid "When"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:657
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:656
 msgid "Remove"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:693
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:692
 msgid "A descriptive name for the command"
 msgstr ""
 
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:693
 #: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:694
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:695
 msgid "Task name"
 msgstr ""
 
@@ -313,15 +313,15 @@ msgstr ""
 msgid "Arguments"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:823
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:825
 msgid "Are you sure to delete this task?"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:848
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:850
 msgid "Task saved"
 msgstr ""
 
-#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:911
+#: ../scheduler-gui.install/usr/share/taskscheduler/bin/taskScheduler.py:913
 msgid "Task updated"
 msgstr ""
 

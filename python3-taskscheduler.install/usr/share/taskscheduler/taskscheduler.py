@@ -36,13 +36,17 @@ class TaskScheduler():
 	def get_available_tasks(self):
 #		tasks=[]
 		tasks={}
-		wrkfiles=self._get_wrkfiles('available')
-		for wrkfile in wrkfiles:
-			task=self._read_tasks_file(wrkfile)
-			if task:
+		n4d_server=self.n4dserver
+		tasks=n4d_server.get_available_tasks("","SchedulerServer")
+		n4d_server=self.n4dclient
+		tasks.update(n4d_server.get_available_tasks("","SchedulerServer"))
+#		wrkfiles=self._get_wrkfiles('available')
+#		for wrkfile in wrkfiles:
+#			task=self._read_tasks_file(wrkfile)
+#			if task:
 #				tasks.append(task)
-				tasks.update(task)
-		self._debug(str(tasks))
+#				tasks.update(task)
+#		self._debug(str(tasks))
 		return tasks
 
 	def get_scheduled_tasks(self,task_type):

@@ -13,7 +13,8 @@ class SchedulerServer():
 		self.dbg=0
 		self.taskDir="/etc/scheduler/tasks.d"
 		self.schedTasksDir=self.taskDir+"/scheduled"
-		self.custom_tasks="/etc/scheduler/conf.d/custom.json"
+		self.available_tasks_dir="/etc/scheduler/conf.d"
+		self.custom_tasks=self.available_tasks_dir+"/custom.json"
 		self.remote_tasks_dir=self.taskDir+"/remote"
 		self.local_tasks_dir=self.taskDir+"/local"
 		self.errormsg=''
@@ -37,11 +38,23 @@ class SchedulerServer():
 		return(scheduled_tasks)
 	#def get_tasks
 
+	def get_available_tasks(self):
+		tasks={}
+		wrkfiles=self._get_wrkfiles('available')
+		for wrkfile in wrkfiles:
+			task=self._read_tasks_file(wrkfile)
+			if task:
+				tasks.update(task)
+		self._debug(str(tasks))
+		return tasks
+
 	def _get_wrkfiles(self,task_type):
 		if task_type=='local':
 			wrk_dir=self.local_tasks_dir
-		else:
+		elif task_type=='remote':
 			wrk_dir=self.remote_tasks_dir
+		elif task_type=='available':
+			wrk_dir=self.available_tasks_dir
 		if not os.path.isdir(wrk_dir):
 			os.makedirs(wrk_dir)
 
@@ -151,9 +164,9 @@ class SchedulerServer():
 		if os.path.isfile(self.custom_tasks):
 			tasks=json.loads(open(self.custom_tasks).read())
 		else:
-			tasks['custom']={}
+			tasks['Custom']={}
 		new_task[cmd_name]=cmd+' '+parms
-		tasks['custom'].update(new_task)
+		tasks['Custom'].update(new_task)
 		with open(self.custom_tasks,'w') as json_data:
 			json.dump(tasks,json_data,indent=4)
 
