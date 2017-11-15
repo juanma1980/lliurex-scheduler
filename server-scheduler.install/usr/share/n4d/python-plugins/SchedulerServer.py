@@ -13,10 +13,10 @@ class SchedulerServer():
 		self.dbg=0
 		self.taskDir="/etc/scheduler/tasks.d"
 		self.schedTasksDir=self.taskDir+"/scheduled"
-		self.remote_tasks_dir=self.schedTasksDir+"/remote"
-		self.local_tasks_dir=self.schedTasksDir+"/local"
-		self.errormsg=''
-		sw_readErr=False
+		self.available_tasks_dir="/etc/scheduler/conf.d/tasks"
+		self.custom_tasks=self.available_tasks_dir+"/custom.json"
+		self.remote_tasks_dir=self.taskDir+"/remote"
+		self.local_tasks_dir=self.taskDir+"/local"
 	#def __init__
 
 	def _debug(self,msg):
@@ -25,22 +25,35 @@ class SchedulerServer():
 	#def _debug
 
 	def get_tasks(self,task_type):
-		scheduled_tasks=[]
+		result={}
+		tasks=[]
 		wrkfiles=self._get_wrkfiles(task_type)
 		for wrkfile in wrkfiles:
 			content=self._read_tasks_file(wrkfile)
-			if not self.readErr:
-				scheduled_tasks.append(content)
+			tasks.append(content)
 		self._debug("Tasks loaded")
-		self._debug(str(scheduled_tasks))
-		return(scheduled_tasks)
+		self._debug(str(tasks))
+		return({'status':True,'data':tasks})
 	#def get_tasks
+
+	def get_available_tasks(self):
+		tasks={}
+		wrkfiles=self._get_wrkfiles('available')
+		self._debug(wrkfiles)
+		for wrkfile in wrkfiles:
+			task=self._read_tasks_file(wrkfile)
+			if task:
+				tasks.update(task)
+		self._debug(str(tasks))
+		return({'status':True,'data':tasks})
 
 	def _get_wrkfiles(self,task_type):
 		if task_type=='local':
 			wrk_dir=self.local_tasks_dir
-		else:
+		elif task_type=='remote':
 			wrk_dir=self.remote_tasks_dir
+		elif task_type=='available':
+			wrk_dir=self.available_tasks_dir
 		if not os.path.isdir(wrk_dir):
 			os.makedirs(wrk_dir)
 
@@ -48,18 +61,17 @@ class SchedulerServer():
 		for f in os.listdir(wrk_dir):
 			wrkfiles.append(wrk_dir+'/'+f)
 		return wrkfiles
+	#def _get_wrkfiles
 
 	def _read_tasks_file(self,wrkfile):
 		self._debug("Opening %s" % wrkfile)
-		self.readErr=0
 		tasks={}
 		if os.path.isfile(wrkfile):
 			try:
 				tasks=json.loads(open(wrkfile).read())
 			except :
-				self.errormsg=(("unable to open %s") % wrkfile)
-				self._debug(self.errormsg)
-				self.readErr=1
+				errormsg=(("unable to open %s") % wrkfile)
+				self._debug(errormsg)
 		return(tasks)
 	#def _read_tasks_file
 	
@@ -85,7 +97,8 @@ class SchedulerServer():
 			with open(wrkfile,'w') as json_data:
 				json.dump(task,json_data,indent=4)
 			self._register_cron_update()
-		return ({'status':sw_del,'msg':msg})
+		return ({'status':sw_del,'data':msg})
+	#def remove_task
 
 	def _serialize_task(self,task):
 		serial_task={}
@@ -96,6 +109,7 @@ class SchedulerServer():
 				serial_task[name].update({cont+1:data})
 				cont+=1
 		return(serial_task)
+	#def _serialize_task
 
 	def write_tasks(self,task_type,tasks):
 		if task_type=='local':
@@ -141,8 +155,30 @@ class SchedulerServer():
 			status=False
 		self._register_cron_update()
 		self._debug("%s updated" % task_name)
-		return({'status':status,'msg':msg})
+		return({'status':status,'data':msg})
 	#def write_tasks
+
+	def write_custom_task(self,cmd_name,cmd,parms):
+		status=True
+		msg=''
+		tasks={}
+		new_task={}
+		if os.path.isfile(self.custom_tasks):
+			tasks=json.loads(open(self.custom_tasks).read())
+			if not 'Custom' in tasks.keys():
+				tasks['Custom']={}
+		else:
+			tasks['Custom']={}
+		new_task[cmd_name]=cmd+' '+parms
+		tasks['Custom'].update(new_task)
+		try:
+			with open(self.custom_tasks,'w') as json_data:
+				json.dump(tasks,json_data,indent=4)
+		except Exception as e:
+			status=False
+			msg=e
+		return({'status':status,'data':msg})
+	#def write_custom_task
 
 	def _register_cron_update(self):
 		self._debug("Registering trigger var")
@@ -158,3 +194,4 @@ class SchedulerServer():
 		val+=1
 		objects["VariablesManager"].set_variable("SCHEDULED_TASKS",val)
 		self._debug("New value is %s"%val)
+	#def _register_cron_update
