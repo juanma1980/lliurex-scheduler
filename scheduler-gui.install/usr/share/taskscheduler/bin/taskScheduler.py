@@ -988,9 +988,6 @@ class TaskScheduler:
 		widget.handler_block(handler)
 		widget.set_active(state)
 		GObject.timeout_add(100,widget.handler_unblock,handler)
-#		with widget.handler_block(handler) as w:
-#			print("BLOCKING WIDGET %s"%state)
-#			widget.set_active(state)
 	#def _block_widget_state
 	
 	def set_css_info(self):
