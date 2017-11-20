@@ -896,12 +896,19 @@ class TaskScheduler:
 	#def view_tasks_clicked	
 
 	def load_add_task_details(self):
-		if self.btn_remote_tasks.get_active():
-			self.chk_remote.set_active(1)
-			self.chk_local.set_active(0)
-		else:
+		if not self.btn_remote_tasks.get_visible():
+			self.chk_remote.set_visible(False)
 			self.chk_local.set_active(1)
 			self.chk_remote.set_active(0)
+			self.chk_local.set_sensitive(False)
+		else:
+			if self.btn_remote_tasks.get_active():
+				self.chk_remote.set_active(1)
+				self.chk_local.set_active(0)
+			else:
+				self.chk_local.set_active(1)
+				self.chk_remote.set_active(0)
+
 		self._block_widget_state(False,self.btn_remote_tasks,self.handler_remote)
 		self._block_widget_state(False,self.btn_local_tasks,self.handler_local)
 		tasks=[]
