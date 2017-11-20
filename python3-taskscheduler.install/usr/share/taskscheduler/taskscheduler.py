@@ -15,7 +15,8 @@ import ssl
 class TaskScheduler():
 	def __init__(self):
 		self.dbg=1
-		self.n4dserver=self._n4d_connect()
+		self.credentials=["",""]
+		self.n4dserver=None
 		self.n4dclient=self._n4d_connect('localhost')
 		self.conf_dir="/etc/scheduler/conf.d/"
 		self.tasks_dir=self.conf_dir+'/tasks'
@@ -23,7 +24,6 @@ class TaskScheduler():
 		self.commands_file=self.conf_dir+'/commands/commands.json'
 		self.sched_dir="/etc/scheduler/tasks.d"
 		self.local_tasks_dir=self.sched_dir+"/local"
-		self.credentials=["",""]
 	#def __init__
 
 	def _debug(self,msg):
@@ -31,27 +31,26 @@ class TaskScheduler():
 			print("Scheduler lib: %s" % msg)
 	#def _debug
 	
-	def set_credentials(self,credentials):
-		self.credentials=credentials
+	def set_credentials(self,user,pwd,server):
+		self.credentials=[user,pwd]
+		self.n4dserver=self._n4d_connect(server)
 	#def set_credentials
 
 	def get_available_tasks(self):
 		tasks={}
-		n4d_server=self.n4dserver
-		tasks=n4d_server.get_available_tasks("","SchedulerServer")['data'].copy()
-		n4d_server=self.n4dclient
-		tasks.update(n4d_server.get_available_tasks("","SchedulerServer")['data'])
+		if self.n4dserver:
+			tasks=self.n4dserver.get_available_tasks("","SchedulerServer")['data'].copy()
+		tasks.update(self.n4dclient.get_available_tasks("","SchedulerServer")['data'])
 		return tasks
 	#def get_available_tasks
 
 	def get_scheduled_tasks(self,task_type):
 		tasks=[]
 		self._debug("Retrieving %s task list"%task_type)
-		if task_type=='remote':
-			n4d_server=self.n4dserver
-		else:
-			n4d_server=self.n4dclient
-		tasks=n4d_server.get_tasks("","SchedulerServer",task_type)['data']
+		if task_type=='remote' and self.n4dserver:
+			tasks=self.n4dserver.get_tasks("","SchedulerServer",task_type)['data']
+		elif task_type=='local':
+			tasks=self.n4dclient.get_tasks("","SchedulerServer",task_type)['data']
 		return tasks
 	#def get_scheduled_tasks
 
@@ -141,10 +140,9 @@ class TaskScheduler():
 	def write_tasks(self,tasks,task_type):
 		self._debug("Sending task info to %s server"%task_type)
 		if task_type=='remote':
-			n4d_server=self.n4dserver
+			tasks=self.n4dserver.write_tasks(self.credentials,"SchedulerServer",task_type,tasks)
 		else:
-			n4d_server=self.n4dclient
-		tasks=n4d_server.write_tasks(self.credentials,"SchedulerServer",task_type,tasks)
+			tasks=self.n4dclient.write_tasks(self.credentials,"SchedulerServer",task_type,tasks)
 		self._debug(tasks)
 		return True
 	#def write_tasks
@@ -152,14 +150,13 @@ class TaskScheduler():
 	def remove_task(self,task_name,task_serial,task_cmd,task_type):
 		self._debug("Removing task from %s server"%task_type)
 		if task_type=='remote':
-			n4d_server=self.n4dserver
+			tasks=self.n4dserver.remove_task(self.credentials,"SchedulerServer",task_type,task_name,task_serial,task_cmd)
 		else:
-			n4d_server=self.n4dclient
-		tasks=n4d_server.remove_task(self.credentials,"SchedulerServer",task_type,task_name,task_serial,task_cmd)
+			tasks=self.n4dclient.remove_task(self.credentials,"SchedulerServer",task_type,task_name,task_serial,task_cmd)
 		self._debug(tasks)
 	#def remove_task
 
-	def _n4d_connect(self,server='server'):
+	def _n4d_connect(self,server):
 		#Setup SSL
 		context=ssl._create_unverified_context()
 		n4dclient = n4d.ServerProxy("https://"+server+":9779",context=context,allow_none=True)

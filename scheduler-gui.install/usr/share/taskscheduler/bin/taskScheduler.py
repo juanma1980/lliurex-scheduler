@@ -758,14 +758,15 @@ class TaskScheduler:
 		self.scheduler_client.write_custom_task(name,cmd,parms)	
 	#def _add_custom_task
 
-	def _signin(self,loginMethod=None,user=None,pwd=None,data=None):
+	def _signin(self,user=None,pwd=None,server=None,data=None):
 		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
 		self.stack.set_visible_child_name("tasks")
 		self.toolbar.show()
-		self.scheduler_client.set_credentials([user,pwd])
-		if loginMethod!='N4d':
+		self.scheduler_client.set_credentials(user,pwd,server)
+		if server=='localhost':
 			self.btn_local_tasks.set_active(True)
 			self.btn_remote_tasks.set_visible(False)
+			self.btn_local_tasks.set_visible(False)
 		else:
 			self.btn_remote_tasks.set_active(True)
 	#def _signin
