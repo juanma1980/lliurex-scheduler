@@ -14,7 +14,7 @@ Description: Python libraries for taskscheduler
 
 Package: taskscheduler
 Architecture: all
-Depends: ${misc:Depends}, ${python3:Depends}, python3-taskscheduler
+Depends: ${misc:Depends}, ${python3:Depends}, python3-taskscheduler,python3-n4dgtklogin
 Description: Main taskschedular program
 
 Package: n4d-taskscheduler-server
