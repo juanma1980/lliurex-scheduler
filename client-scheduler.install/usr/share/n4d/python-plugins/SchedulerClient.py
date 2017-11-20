@@ -3,7 +3,7 @@
 #
 ###
 
-import os
+import os,socket
 import threading
 import time
 import xmlrpclib as xmlrpc
@@ -40,6 +40,10 @@ class SchedulerClient():
 	def process_tasks(self,data=None):
 		self._debug("Scheduling tasks")
 		prefixes=['remote','local']
+		try:
+			socket.gethostbyname('server')
+		except:
+			prefixes=['local']
 		for prefix in prefixes:
 			if prefix=='remote':
 				n4d=xmlrpc.ServerProxy("https://server:9779")
