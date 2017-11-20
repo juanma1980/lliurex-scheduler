@@ -693,6 +693,7 @@ class TaskScheduler:
 		at_grid=self.add_task_grid.render_form(builder.get_object("add_task_grid"),False)
 		self.cmb_task_names=builder.get_object("cmb_task_names")
 		self.cmb_task_cmds=builder.get_object("cmb_task_cmds")
+		builder.get_object("btn_back_add").connect("clicked", self.cancel_add_clicked)
 		builder.get_object("btn_cancel_add").connect("clicked", self.cancel_add_clicked)
 		builder.get_object("btn_confirm_add").connect("clicked", self.save_task_details)
 		self.chk_remote=builder.get_object("swt_remote")
@@ -737,6 +738,8 @@ class TaskScheduler:
 		btn_file.set_sensitive(False)
 		self.btn_apply_manage=builder.get_object("btn_apply_manage")
 		self.btn_apply_manage.connect("clicked",self._add_custom_task,txt_taskname,cmb_cmds,txt_params,chk_parm_is_file,btn_file)
+		self.btn_back_manage=builder.get_object("btn_back_manage")
+		self.btn_back_manage.connect("clicked",self._cancel_manage_clicked)
 		self.btn_cancel_manage=builder.get_object("btn_cancel_manage")
 		self.btn_cancel_manage.connect("clicked",self._cancel_manage_clicked)
 	#def _load_manage_tasks
@@ -893,12 +896,19 @@ class TaskScheduler:
 	#def view_tasks_clicked	
 
 	def load_add_task_details(self):
-		if self.btn_remote_tasks.get_active():
-			self.chk_remote.set_active(1)
-			self.chk_local.set_active(0)
-		else:
+		if not self.btn_remote_tasks.get_visible():
+			self.chk_remote.set_visible(False)
 			self.chk_local.set_active(1)
 			self.chk_remote.set_active(0)
+			self.chk_local.set_sensitive(False)
+		else:
+			if self.btn_remote_tasks.get_active():
+				self.chk_remote.set_active(1)
+				self.chk_local.set_active(0)
+			else:
+				self.chk_local.set_active(1)
+				self.chk_remote.set_active(0)
+
 		self._block_widget_state(False,self.btn_remote_tasks,self.handler_remote)
 		self._block_widget_state(False,self.btn_local_tasks,self.handler_local)
 		tasks=[]
@@ -951,6 +961,7 @@ class TaskScheduler:
 			self._block_widget_state(True,self.btn_remote_tasks,self.handler_remote)
 		else:
 			self._block_widget_state(True,self.btn_local_tasks,self.handler_local)
+		self._reload_grid()
 	#def cancel_add_clicked
 
 	def _reload_grid(self,widget=None,data=None):

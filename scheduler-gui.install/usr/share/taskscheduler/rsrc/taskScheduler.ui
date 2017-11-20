@@ -224,37 +224,70 @@
       <object class="GtkBox" id="box6">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="halign">end</property>
         <property name="margin_right">5</property>
         <property name="spacing">5</property>
         <child>
-          <object class="GtkButton" id="btn_cancel_add">
-            <property name="label">gtk-cancel</property>
+          <object class="GtkButton" id="btn_back_add">
+            <property name="label">gtk-go-back</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="tooltip_text" translatable="yes">Cancel</property>
+            <property name="halign">start</property>
             <property name="use_stock">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
+            <property name="padding">6</property>
             <property name="position">0</property>
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="btn_confirm_add">
-            <property name="label">gtk-ok</property>
+          <object class="GtkBox" id="box4">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <property name="tooltip_markup" translatable="yes">Add the task</property>
-            <property name="use_stock">True</property>
+            <property name="can_focus">False</property>
+            <property name="halign">end</property>
+            <property name="resize_mode">immediate</property>
+            <property name="spacing">6</property>
+            <child>
+              <object class="GtkButton" id="btn_cancel_add">
+                <property name="label">gtk-cancel</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Cancel</property>
+                <property name="halign">end</property>
+                <property name="hexpand">True</property>
+                <property name="use_stock">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_confirm_add">
+                <property name="label">gtk-ok</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_markup" translatable="yes">Add the task</property>
+                <property name="halign">end</property>
+                <property name="hexpand">True</property>
+                <property name="use_stock">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">1</property>
+            <property name="position">2</property>
           </packing>
         </child>
       </object>
@@ -346,7 +379,7 @@
                         <property name="homogeneous">True</property>
                         <child>
                           <object class="GtkToggleButton" id="btn_remote_tasks">
-                            <property name="label" translatable="yes">Show remote tasks</property>
+                            <property name="label" translatable="yes">Client tasks</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -360,7 +393,7 @@
                         </child>
                         <child>
                           <object class="GtkToggleButton" id="btn_local_tasks">
-                            <property name="label" translatable="yes">Show local tasks</property>
+                            <property name="label" translatable="yes">Local tasks</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
@@ -523,42 +556,73 @@ Put a descriptive task name, select the command and set the required parameters 
         <property name="can_focus">False</property>
         <property name="valign">end</property>
         <property name="vexpand">True</property>
+        <property name="spacing">6</property>
         <child>
-          <object class="GtkButton" id="btn_cancel_manage">
-            <property name="label">gtk-cancel</property>
+          <object class="GtkButton" id="btn_back_manage">
+            <property name="label">gtk-go-back</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="halign">start</property>
-            <property name="hexpand">True</property>
             <property name="use_stock">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
+            <property name="fill">True</property>
+            <property name="padding">6</property>
             <property name="position">0</property>
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="btn_apply_manage">
-            <property name="label">gtk-apply</property>
+          <object class="GtkBox" id="box3">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
+            <property name="can_focus">False</property>
             <property name="halign">end</property>
-            <property name="hexpand">True</property>
-            <property name="use_stock">True</property>
+            <child>
+              <object class="GtkButton" id="btn_cancel_manage">
+                <property name="label">gtk-cancel</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="halign">end</property>
+                <property name="hexpand">True</property>
+                <property name="use_stock">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_apply_manage">
+                <property name="label">gtk-ok</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="halign">end</property>
+                <property name="hexpand">True</property>
+                <property name="use_stock">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="padding">6</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">1</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
           </packing>
         </child>
       </object>
       <packing>
         <property name="expand">False</property>
         <property name="fill">True</property>
+        <property name="padding">6</property>
         <property name="position">3</property>
       </packing>
     </child>
