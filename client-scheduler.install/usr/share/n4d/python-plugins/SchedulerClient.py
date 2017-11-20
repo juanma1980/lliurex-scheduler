@@ -71,11 +71,15 @@ class SchedulerClient():
 			fname=self.cron_dir+'/'+prefix+task_name.replace(' ','_')
 			cron_array=[]
 			for task_serial,task_info in task_data.items():
-				cron_task=("%s %s %s %s %s %s"%(task_info['m'],task_info['h'],task_info['dom'],\
+				cron_task=("%s %s %s %s %s root %s"%(task_info['m'],task_info['h'],task_info['dom'],\
 								task_info['mon'],task_info['dow'],task_info['cmd']))
 				cron_array.append(cron_task)
 			if task_data:
 				with open(fname,'w') as data:
+					data.write('#Scheduler tasks\n')
+					data.write('SHELL=/bin/sh\n')
+					data.write('PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin\n')
+					data.write('DISPLAY=:0\n')
 					for cron_line in cron_array:
 						data.write(cron_line+"\n")
 	#def _write_crontab_for_task
