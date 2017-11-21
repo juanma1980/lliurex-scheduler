@@ -144,9 +144,9 @@ class TaskDetails:
 
 	def render_form(self,gtkGrid,btn_apply=True):
 		self.chk_monday=Gtk.ToggleButton(_("Monday"))
-		self.chk_thursday=Gtk.ToggleButton(_("Thursday"))
+		self.chk_thursday=Gtk.ToggleButton(_("Tuesday"))
 		self.chk_wednesday=Gtk.ToggleButton(_("Wednesday"))
-		self.chk_tuesday=Gtk.ToggleButton(_("Tuesday"))
+		self.chk_tuesday=Gtk.ToggleButton(_("Thursday"))
 		self.chk_friday=Gtk.ToggleButton(_("Friday"))
 		self.chk_saturday=Gtk.ToggleButton(_("Saturday"))
 		self.chk_sunday=Gtk.ToggleButton(_("Sunday"))
@@ -561,7 +561,8 @@ class TaskScheduler:
 		self.login=N4dGtkLogin()
 		desc=_("Welcome to the Task Scheduler for Lliurex.\nFrom here you can:\n<sub>* Schedule tasks in the local pc\n* Distribute tasks among all the pcs in the network\n*Show scheduled tasks</sub>")
 		self.login.set_info_text("<span foreground='black'>Task Scheduler</span>",_("Task Scheduler"),"<span foreground='black'>"+desc+"</span>")
-		self.login.set_info_background(image='/usr/share/backgrounds/lliurex/lliurex-blueprint.png',cover=True)
+#		self.login.set_info_background(image='/usr/share/backgrounds/lliurex/lliurex-blueprint.png',cover=True)
+		self.login.set_info_background(image='taskscheduler',cover=True)
 		self.login.after_validation_goto(self._signin)
 		self.loginBox=self.login.render_form()
 		self.inf_message=Gtk.InfoBar()
@@ -776,6 +777,7 @@ class TaskScheduler:
 	#def _signin
 
 	def populate_tasks_tv(self,task_type):
+		self._debug("Populating task list")
 		self.scheduled_tasks={}
 		tasks=[]
 		tasks=self.scheduler_client.get_scheduled_tasks(task_type)
@@ -893,10 +895,11 @@ class TaskScheduler:
 			self.btn_remote_tasks.set_active(False)
 			self.btn_remote_tasks.props.active=False
 			self.last_task_type='local'
+		self._debug("Task clicked")
 		self.populate_tasks_tv(task_type)
 		self.tasks_tv.set_model(self.tasks_store_filter)
 		self.tasks_tv.set_cursor(0)
-		self.cancel_add_clicked(widget,task_type)
+#		self.cancel_add_clicked(widget,task_type)
 	#def view_tasks_clicked	
 
 	def load_add_task_details(self):
@@ -941,6 +944,7 @@ class TaskScheduler:
 	#def load_add_task_details_cmds
 	
 	def update_task(self,widget,data=None):
+		self._debug("Updating task")
 		self.task_details_grid.update_task_details()
 		self._show_info(_('Task updated'))
 		self._reload_grid()
@@ -965,6 +969,7 @@ class TaskScheduler:
 			self._block_widget_state(True,self.btn_remote_tasks,self.handler_remote)
 		else:
 			self._block_widget_state(True,self.btn_local_tasks,self.handler_local)
+		self._debug("Cancel add clicked")
 		self._reload_grid()
 	#def cancel_add_clicked
 
@@ -974,6 +979,7 @@ class TaskScheduler:
 			task_type='remote'
 		else:
 			task_type='local'
+		self._debug("Reload grid")
 		self.populate_tasks_tv(task_type)
 		if cursor:
 			self.tasks_tv.set_cursor(cursor)
