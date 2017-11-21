@@ -879,6 +879,8 @@ class TaskScheduler:
 	#def save_task_details
 
 	def view_tasks_clicked(self,widget,task_type):
+		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_RIGHT)
+		self.stack.set_visible_child_name("tasks")	
 		if widget:
 			if not widget.get_active():
 				if task_type=='remote':
