@@ -609,10 +609,10 @@ class TaskScheduler:
 		image.set_from_file(REMOVE_ICON)		
 		self.remove_icon=image.get_pixbuf()
 		#Load stack
-		self.stack.add_titled(self.loginBox, "login", "Login")
-		self.stack.add_titled(self.tasks_box, "tasks", "Tasks")
 		self.stack.add_titled(self.manage_box, "manage", "Manage")
 		self.stack.add_titled(self.add_task_box, "add", "Add Task")
+		self.stack.add_titled(self.loginBox, "login", "Login")
+		self.stack.add_titled(self.tasks_box, "tasks", "Tasks")
 
 		#Packing
 		self.main_box.pack_start(self.stack,True,False,5)
@@ -759,6 +759,7 @@ class TaskScheduler:
 		if w_chk.get_active():
 				parms=parms+' '+w_file.get_uri().replace('file://','')
 		self.scheduler_client.write_custom_task(name,cmd,parms)	
+		self._show_info(_("Task saved"))
 	#def _add_custom_task
 
 	def _signin(self,user=None,pwd=None,server=None,data=None):
@@ -819,7 +820,10 @@ class TaskScheduler:
 		self.task_details_grid.clear_screen()
 		sw_show=True
 		if event!=None:
-			row=self.tasks_tv.get_path_at_pos(int(event.x),int(event.y))
+			try:
+				row=self.tasks_tv.get_path_at_pos(int(event.x),int(event.y))
+			except:
+				return
 			col=row[1]
 			if col==self.col_remove:
 				sw_show=False
@@ -971,7 +975,8 @@ class TaskScheduler:
 		else:
 			task_type='local'
 		self.populate_tasks_tv(task_type)
-		self.tasks_tv.set_cursor(cursor)
+		if cursor:
+			self.tasks_tv.set_cursor(cursor)
 	#def _reload_grid
 
 	def manage_remove_responses(self,widget,response,model,task_name,task_serial,task_cmd,task_type,data):
