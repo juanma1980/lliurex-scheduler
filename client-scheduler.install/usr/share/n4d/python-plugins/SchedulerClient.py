@@ -80,6 +80,7 @@ class SchedulerClient():
 					data.write('SHELL=/bin/sh\n')
 					data.write('PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin\n')
 					data.write('DISPLAY=:0\n')
+					data.write('XAUTHORITY=/var/run/lightdm/root/:0\n')
 					for cron_line in cron_array:
 						data.write(cron_line+"\n")
 	#def _write_crontab_for_task
