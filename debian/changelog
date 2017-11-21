@@ -1,3 +1,33 @@
+taskscheduler (0.2.4) xenial; urgency=medium
+
+  * Minor gui bugfix
+
+ -- Juanma Navarro Mañez <juanma1980@gmail.com>  Tue, 21 Nov 2017 13:47:30 +0100
+
+taskscheduler (0.2.3) xenial; urgency=medium
+
+  * Update control
+
+ -- Juanma Navarro Mañez <juanma1980@gmail.com>  Mon, 20 Nov 2017 13:35:08 +0100
+
+taskscheduler (0.2.2) xenial; urgency=medium
+
+  * Add postinst
+
+ -- Juanma Navarro Mañez <juanma1980@gmail.com>  Mon, 20 Nov 2017 13:03:07 +0100
+
+taskscheduler (0.2.1) xenial; urgency=medium
+
+  * Add handler for socket exceptions
+
+ -- Juanma Navarro Mañez <juanma1980@gmail.com>  Mon, 20 Nov 2017 10:15:42 +0100
+
+taskscheduler (0.2) xenial; urgency=medium
+
+  * Add conf files
+
+ -- Juanma Navarro Mañez <juanma1980@gmail.com>  Wed, 15 Nov 2017 17:45:57 +0100
+
 taskscheduler (0.1) xenial; urgency=medium
 
   * Initial release. 
