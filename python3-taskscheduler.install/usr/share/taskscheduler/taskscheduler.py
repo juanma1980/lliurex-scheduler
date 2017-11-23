@@ -14,13 +14,13 @@ import ssl
 
 class TaskScheduler():
 	def __init__(self):
-		self.dbg=1
+		self.dbg=0
 		self.credentials=["",""]
 		self.n4dserver=None
 		self.n4dclient=self._n4d_connect('localhost')
 		self.conf_dir="/etc/scheduler/conf.d/"
 		self.tasks_dir=self.conf_dir+'/tasks'
-		self.custom_tasks=self.tasks_dir+"/custom.json"
+		self.custom_tasks=self.tasks_dir+"/personal.json"
 		self.commands_file=self.conf_dir+'/commands/commands.json'
 		self.sched_dir="/etc/scheduler/tasks.d"
 		self.local_tasks_dir=self.sched_dir+"/local"

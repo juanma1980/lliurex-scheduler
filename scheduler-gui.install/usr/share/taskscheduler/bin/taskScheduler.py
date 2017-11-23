@@ -15,7 +15,7 @@ import sys
 import time
 #import commands
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject, GLib, PangoCairo, Pango
-
+import time
 from taskscheduler.taskscheduler import TaskScheduler as scheduler
 from taskscheduler.cronParser import cronParser
 from edupals.ui.n4dgtklogin import *
@@ -32,7 +32,7 @@ GLADE_FILE=BASE_DIR+"rsrc/taskScheduler.ui"
 REMOVE_ICON=BASE_DIR+"rsrc/trash.svg"
 LOCK_PATH="/var/run/taskScheduler.lock"
 WIDGET_MARGIN=6
-DBG=0
+DBG=1
 class TaskDetails:
 	
 	def __init__(self,scheduler):
@@ -574,6 +574,7 @@ class TaskScheduler:
 		def hide(widget,response):
 			self.inf_message.hide()
 		self.inf_message.connect('response',hide)
+#		self.inf_message.props.no_show_all=True
 
 		self.inf_question=Gtk.InfoBar()	
 		self.lbl_question=Gtk.Label("")
@@ -582,6 +583,7 @@ class TaskScheduler:
 		self.inf_question.add_button(Gtk.STOCK_OK,Gtk.ResponseType.OK)
 		self.inf_question.set_halign(Gtk.Align.CENTER)
 		self.inf_question.set_valign(Gtk.Align.CENTER)
+#		self.inf_question.props.no_show_all=True
 		self.main_box.pack_start(self.inf_question,False,False,0)
 		self.main_box.pack_start(self.inf_message,False,False,0)
 		self.view_tasks_button_box=builder.get_object("view_tasks_button_box")
@@ -589,6 +591,7 @@ class TaskScheduler:
 		self.btn_signal_id=None
 		#Toolbar
 		self.toolbar=builder.get_object("toolbar")
+		self.toolbar.set_visible(False)
 		self.btn_add_task=builder.get_object("btn_add_task")
 		self.btn_add_task.connect("button-release-event", self.add_task_clicked)
 		self.btn_refresh_tasks=builder.get_object("btn_refresh_tasks")
@@ -609,25 +612,24 @@ class TaskScheduler:
 		image=Gtk.Image()
 		image.set_from_file(REMOVE_ICON)		
 		self.remove_icon=image.get_pixbuf()
-		#Load stack
+
+		self.stack.add_titled(self.tasks_box, "tasks", "Tasks")
 		self.stack.add_titled(self.manage_box, "manage", "Manage")
 		self.stack.add_titled(self.add_task_box, "add", "Add Task")
 		self.stack.add_titled(self.loginBox, "login", "Login")
-		self.stack.add_titled(self.tasks_box, "tasks", "Tasks")
-
 		#Packing
 		self.main_box.pack_start(self.stack,True,False,5)
-		self.window.show_all()
-		self.toolbar.hide()
-		self.inf_question.hide()
-		self.inf_message.hide()
+		self.toolbar.props.no_show_all=True
 		self.window.connect("destroy",self.quit)
+		self.window.show_all()
+		self.inf_message.hide()
+		self.inf_question.hide()
 		self.set_css_info()
-		self.task_list=[]
-		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
+		#Load stack
+		self.stack.set_transition_type(Gtk.StackTransitionType.NONE)
 		self.stack.set_visible_child_name("login")
+		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
 
-		GObject.threads_init()
 		Gtk.main()
 
 	#def start_gui
@@ -715,8 +717,10 @@ class TaskScheduler:
 		custom_grid.attach(txt_taskname,1,0,1,1)
 		cmb_cmds=Gtk.ComboBoxText()
 		cmds=self.scheduler_client.get_commands()
+		orig_cmd={}
 		for cmd in cmds.keys():
-			cmb_cmds.append_text(cmd)
+			orig_cmd[_(cmd)]=cmd
+			cmb_cmds.append_text(_(cmd))
 
 		lbl_cmd=Gtk.Label(_("Command"))
 		lbl_cmd.set_halign(Gtk.Align.END)
@@ -738,7 +742,7 @@ class TaskScheduler:
 		custom_grid.attach(btn_file,3,0,1,1)
 		btn_file.set_sensitive(False)
 		self.btn_apply_manage=builder.get_object("btn_apply_manage")
-		self.btn_apply_manage.connect("clicked",self._add_custom_task,txt_taskname,cmb_cmds,txt_params,chk_parm_is_file,btn_file)
+		self.btn_apply_manage.connect("clicked",self._add_custom_task,txt_taskname,cmb_cmds,txt_params,chk_parm_is_file,btn_file,orig_cmd)
 		self.btn_back_manage=builder.get_object("btn_back_manage")
 		self.btn_back_manage.connect("clicked",self._cancel_manage_clicked)
 		self.btn_cancel_manage=builder.get_object("btn_cancel_manage")
@@ -752,9 +756,10 @@ class TaskScheduler:
 			filechooser.set_sensitive(False)
 	#def _enable_filechooser
 
-	def _add_custom_task(self,widget,w_name,w_cmd,w_parms,w_chk,w_file):
+	def _add_custom_task(self,widget,w_name,w_cmd,w_parms,w_chk,w_file,orig_cmd):
 		name=w_name.get_text()
-		cmd_desc=w_cmd.get_active_text()
+		cmd=w_cmd.get_active_text()
+		cmd_desc=orig_cmd[cmd]
 		parms=w_parms.get_text()
 		cmd=self.scheduler_client.get_command_cmd(cmd_desc)
 		if w_chk.get_active():
@@ -764,9 +769,6 @@ class TaskScheduler:
 	#def _add_custom_task
 
 	def _signin(self,user=None,pwd=None,server=None,data=None):
-		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
-		self.stack.set_visible_child_name("tasks")
-		self.toolbar.show()
 		self.scheduler_client.set_credentials(user,pwd,server)
 		if server=='localhost':
 			self.btn_local_tasks.set_active(True)
@@ -774,27 +776,32 @@ class TaskScheduler:
 			self.btn_local_tasks.set_visible(False)
 		else:
 			self.btn_remote_tasks.set_active(True)
+		self.toolbar.show()
 	#def _signin
 
 	def populate_tasks_tv(self,task_type):
 		self._debug("Populating task list")
 		self.scheduled_tasks={}
 		tasks=[]
+		self.orig_tasks={}
+		self.orig_cmd={}
 		tasks=self.scheduler_client.get_scheduled_tasks(task_type)
 		self.tasks_store.clear()
 		if type(tasks)==type([]):	
 			for task in tasks:
-				for task_name,task_serialized in task.items():
-					self.scheduled_tasks[task_name]=task_serialized
-					for serial,task in task_serialized.items():
+				for task_name,task_serial in task.items():
+					self.scheduled_tasks[task_name]=task_serial
+					for serial,task in task_serial.items():
 						parser=cronParser()
 						parsed_calendar=''
 						parsed_calendar=parser.parse_taskData(task)
 						task['cmd']=task['cmd'].replace(self.ldm_helper+' ','')
 						task['action']=self.scheduler_client.get_task_description(task['cmd'])
-						self.tasks_store.append(("<span font='Roboto'><b>"+task['action']+"</b></span>\n"+\
+						self.orig_cmd[_(task['action'])]=task['action']
+						self.orig_tasks[_(task_name)]=task_name
+						self.tasks_store.append(("<span font='Roboto'><b>"+_(task['action'])+"</b></span>\n"+\
 									"<span font='Roboto' size='small'><i>"+\
-									task_name+"</i></span>",serial,"<span font='Roboto' size='small'>"+\
+									_(task_name)+"</i></span>",serial,"<span font='Roboto' size='small'>"+\
 									parsed_calendar+"</span>",self.remove_icon,'oooo'))
 	#def populate_tasks_tv
 	
@@ -858,10 +865,11 @@ class TaskScheduler:
 	#def task_clicked			
 
 	def save_task_details(self,widget):
-		task_name=self.cmb_task_names.get_active_text()
-		task_action=self.cmb_task_cmds.get_active_text()
+		name=self.cmb_task_names.get_active_text()
+		task_name=self.orig_tasks[name]
+		action=self.cmb_task_cmds.get_active_text()
+		task_action=self.orig_cmd[action]
 		tasks=self.scheduler_client.get_available_tasks()
-		print(tasks)
 		task_cmd=tasks[task_name][task_action]
 		task_type='local'
 		if self.btn_remote_tasks.get_active():
@@ -879,8 +887,6 @@ class TaskScheduler:
 	#def save_task_details
 
 	def view_tasks_clicked(self,widget,task_type):
-		self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_RIGHT)
-		self.stack.set_visible_child_name("tasks")	
 		if widget:
 			if not widget.get_active():
 				if task_type=='remote':
@@ -901,6 +907,9 @@ class TaskScheduler:
 		self.populate_tasks_tv(task_type)
 		self.tasks_tv.set_model(self.tasks_store_filter)
 		self.tasks_tv.set_cursor(0)
+		if self.stack.get_visible_child_name!='tasks':
+#			self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_RIGHT)
+			self.stack.set_visible_child_name("tasks")
 #		self.cancel_add_clicked(widget,task_type)
 	#def view_tasks_clicked	
 
@@ -922,12 +931,14 @@ class TaskScheduler:
 		self._block_widget_state(False,self.btn_local_tasks,self.handler_local)
 		tasks=[]
 		names=[]
+		self.orig_tasks={}
 		self.cmb_task_names.remove_all()
 		tasks=self.scheduler_client.get_available_tasks()
 		for name in tasks.keys():
 			if name not in names:
 				names.append(name)
-				self.cmb_task_names.append_text(name)
+				self.orig_tasks[_(name)]=name
+				self.cmb_task_names.append_text(_(name))
 		
 		self.cmb_task_names.connect('changed',self.load_add_task_details_cmds,tasks)
 		self.cmb_task_names.set_active(0)
@@ -935,13 +946,16 @@ class TaskScheduler:
 
 	def load_add_task_details_cmds(self,widget,tasks):
 		actions=[]
+		self.orig_cmd={}
 		self.cmb_task_cmds.remove_all()
 		task_name=self.cmb_task_names.get_active_text()
 		if task_name:
-			for action in tasks[task_name].keys():
+			orig_name=self.orig_tasks[task_name]
+			for action in tasks[orig_name].keys():
 				if action not in actions:
+					self.orig_cmd[_(action)]=action
 					actions.append(action)
-					self.cmb_task_cmds.append_text(action)
+					self.cmb_task_cmds.append_text(_(action))
 		self.cmb_task_cmds.set_active(0)
 	#def load_add_task_details_cmds
 	
@@ -989,7 +1003,9 @@ class TaskScheduler:
 
 	def manage_remove_responses(self,widget,response,model,task_name,task_serial,task_cmd,task_type,data):
 		if response==Gtk.ResponseType.OK:
-			self.scheduler_client.remove_task(task_name,task_serial,task_cmd,task_type)
+			name=self.orig_tasks[task_name]
+			cmd=self.orig_cmd[task_cmd]
+			self.scheduler_client.remove_task(name,task_serial,cmd,task_type)
 			self.populate_tasks_tv(task_type)
 			self.tasks_tv.set_cursor(0)
 		self.inf_question.hide()
@@ -1078,5 +1094,6 @@ class TaskScheduler:
 
 #class TaskScheduler
 
+GObject.threads_init()
 t=TaskScheduler()
 t.start_gui()		

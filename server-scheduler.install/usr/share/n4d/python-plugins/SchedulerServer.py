@@ -14,7 +14,7 @@ class SchedulerServer():
 		self.taskDir="/etc/scheduler/tasks.d"
 		self.schedTasksDir=self.taskDir+"/scheduled"
 		self.available_tasks_dir="/etc/scheduler/conf.d/tasks"
-		self.custom_tasks=self.available_tasks_dir+"/custom.json"
+		self.custom_tasks=self.available_tasks_dir+"/personal.json"
 		self.remote_tasks_dir=self.taskDir+"/remote"
 		self.local_tasks_dir=self.taskDir+"/local"
 	#def __init__
@@ -165,12 +165,16 @@ class SchedulerServer():
 		new_task={}
 		if os.path.isfile(self.custom_tasks):
 			tasks=json.loads(open(self.custom_tasks).read())
-			if not 'Custom' in tasks.keys():
-				tasks['Custom']={}
+			if not 'Personal' in tasks.keys():
+				tasks['Personal']={}
 		else:
-			tasks['Custom']={}
-		new_task[cmd_name]=cmd+' '+parms
-		tasks['Custom'].update(new_task)
+			tasks['Personal']={}
+		if '%s' in cmd:
+			cmd=cmd.replace('%s','')
+			new_task[cmd_name]=cmd+' "'+parms+'"'
+		else:
+			new_task[cmd_name]=cmd+' '+parms
+		tasks['Personal'].update(new_task)
 		try:
 			with open(self.custom_tasks,'w') as json_data:
 				json.dump(tasks,json_data,indent=4)
