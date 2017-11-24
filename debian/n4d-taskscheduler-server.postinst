@@ -1,0 +1,22 @@
+#!/bin/sh
+
+set -e
+case "$1" in
+   configure)
+   
+		service n4d restart
+	
+   ;;
+
+   abort-upgrade|abort-remove|abort-deconfigure)
+   ;;
+
+   *)
+       exit 1
+   ;;
+esac
+
+#DEBHELPER#
+
+exit 0
+
