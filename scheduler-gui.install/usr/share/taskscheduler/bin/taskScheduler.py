@@ -32,7 +32,7 @@ GLADE_FILE=BASE_DIR+"rsrc/taskScheduler.ui"
 REMOVE_ICON=BASE_DIR+"rsrc/trash.svg"
 LOCK_PATH="/var/run/taskScheduler.lock"
 WIDGET_MARGIN=6
-DBG=0
+DBG=1
 class TaskDetails:
 	
 	def __init__(self,scheduler):
@@ -528,6 +528,8 @@ class TaskScheduler:
 			self.flavour="client"
 		self.last_task_type='remote'
 		self.ldm_helper='/usr/sbin/sched-ldm.sh'
+		self.orig_tasks={}
+		self.orig_cmd={}
 			
 	#def __init__		
 
@@ -640,6 +642,7 @@ class TaskScheduler:
 		self.tasks_tv=builder.get_object("tasks_treeview")
 		self.task_details_grid=TaskDetails(self.scheduler_client)
 		td_grid=self.task_details_grid.render_form(builder.get_object("task_details_grid"))
+		self.task_details_grid.btn_apply.set_sensitive(True)
 		self.task_details_grid.btn_apply.connect("clicked",self.update_task)
 		self.tasks_store=Gtk.ListStore(str,str,str,GdkPixbuf.Pixbuf,str)
 		self.tasks_store_filter=self.tasks_store.filter_new()
@@ -781,10 +784,10 @@ class TaskScheduler:
 
 	def populate_tasks_tv(self,task_type):
 		self._debug("Populating task list")
+		self.task_details_grid.btn_apply.set_sensitive(False)
 		self.scheduled_tasks={}
 		tasks=[]
-		self.orig_tasks={}
-		self.orig_cmd={}
+		sw_tasks=False
 		tasks=self.scheduler_client.get_scheduled_tasks(task_type)
 		self.tasks_store.clear()
 		if type(tasks)==type([]):	
@@ -792,6 +795,7 @@ class TaskScheduler:
 				for task_name,task_serial in task.items():
 					self.scheduled_tasks[task_name]=task_serial
 					for serial,task in task_serial.items():
+						sw_tasks=True
 						parser=cronParser()
 						parsed_calendar=''
 						parsed_calendar=parser.parse_taskData(task)
@@ -803,6 +807,8 @@ class TaskScheduler:
 									"<span font='Roboto' size='small'><i>"+\
 									_(task_name)+"</i></span>",serial,"<span font='Roboto' size='small'>"+\
 									parsed_calendar+"</span>",self.remove_icon,'oooo'))
+		if sw_tasks:
+			self.task_details_grid.btn_apply.set_sensitive(True)
 	#def populate_tasks_tv
 	
 	def filter_tasklist(self,model,iterr,data):
@@ -833,6 +839,8 @@ class TaskScheduler:
 				row=self.tasks_tv.get_path_at_pos(int(event.x),int(event.y))
 			except:
 				return
+			if not row:
+				return
 			col=row[1]
 			if col==self.col_remove:
 				sw_show=False
@@ -842,8 +850,24 @@ class TaskScheduler:
 			return
 		task_data=model[data][0].split('\n')
 		task_serial=model[data][1].split('\n')[0]
-		task_cmd=task_data[0][task_data[0].find("<b>")+3:task_data[0].find("</b>")]
-		task_name=task_data[1][task_data[1].find("<i>")+3:task_data[1].find("</i>")]
+		cmd=task_data[0][task_data[0].find("<b>")+3:task_data[0].find("</b>")]
+		if cmd in self.orig_cmd.keys():
+			task_cmd=self.orig_cmd[cmd]
+		else:
+			print("*******")
+			print(cmd)
+			print(self.orig_cmd)
+			print("*******")
+
+		name=task_data[1][task_data[1].find("<i>")+3:task_data[1].find("</i>")]
+		if name in self.orig_tasks.keys():
+			task_name=self.orig_tasks[name]
+		else:
+			print("*******")
+			print(name)
+			print(self.orig_tasks)
+			print("*******")
+
 		task_serial=model[data][1]
 		if self.btn_remote_tasks.get_active():
 			task_type='remote'
@@ -1003,8 +1027,14 @@ class TaskScheduler:
 
 	def manage_remove_responses(self,widget,response,model,task_name,task_serial,task_cmd,task_type,data):
 		if response==Gtk.ResponseType.OK:
-			name=self.orig_tasks[task_name]
-			cmd=self.orig_cmd[task_cmd]
+			if task_name in self.orig_tasks.keys():
+				name=self.orig_tasks[task_name]
+			else:
+				name=task_name
+			if task_cmd in self.orig_cmd.keys():
+				cmd=self.orig_cmd[task_cmd]
+			else:
+				cmd=task_cmd
 			self.scheduler_client.remove_task(name,task_serial,cmd,task_type)
 			self.populate_tasks_tv(task_type)
 			self.tasks_tv.set_cursor(0)
