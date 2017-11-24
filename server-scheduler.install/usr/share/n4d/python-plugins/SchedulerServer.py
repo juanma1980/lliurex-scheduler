@@ -171,7 +171,7 @@ class SchedulerServer():
 			tasks['Personal']={}
 		if '%s' in cmd:
 			cmd=cmd.replace('%s','')
-			new_task[cmd_name]=cmd+' "'+parms+'"'
+			new_task[cmd_name]=cmd+" '"+parms+"'"
 		else:
 			new_task[cmd_name]=cmd+' '+parms
 		tasks['Personal'].update(new_task)
