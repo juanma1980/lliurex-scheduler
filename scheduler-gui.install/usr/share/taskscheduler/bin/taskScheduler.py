@@ -32,7 +32,7 @@ GLADE_FILE=BASE_DIR+"rsrc/taskScheduler.ui"
 REMOVE_ICON=BASE_DIR+"rsrc/trash.svg"
 LOCK_PATH="/var/run/taskScheduler.lock"
 WIDGET_MARGIN=6
-DBG=1
+DBG=0
 class TaskDetails:
 	
 	def __init__(self,scheduler):
