@@ -77,12 +77,16 @@ class SchedulerClient():
 			if task_data:
 				with open(fname,'w') as data:
 					data.write('#Scheduler tasks\n')
-					data.write('SHELL=/bin/sh\n')
+					data.write('SHELL=/bin/bash\n')
 					data.write('PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin\n')
 					data.write('DISPLAY=:0\n')
 					data.write('XAUTHORITY=/var/run/lightdm/root/:0\n')
-					data.write('https_proxy=http://proxy:3128\n')
-					data.write('http_proxy=http://proxy:3128\n')
+					https_proxy=os.environ['https_proxy']
+					if https_proxy:
+						data.write('https_proxy=%s\n'%https_proxy)
+					http_proxy=os.environ['http_proxy']
+					if http_proxy:
+						data.write('http_proxy=%s\n'%http_proxy)
 					for cron_line in cron_array:
 						data.write(cron_line+"\n")
 	#def _write_crontab_for_task
