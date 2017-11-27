@@ -32,7 +32,7 @@ GLADE_FILE=BASE_DIR+"rsrc/taskScheduler.ui"
 REMOVE_ICON=BASE_DIR+"rsrc/trash.svg"
 LOCK_PATH="/var/run/taskScheduler.lock"
 WIDGET_MARGIN=6
-DBG=1
+DBG=0
 class TaskDetails:
 	
 	def __init__(self,scheduler):
@@ -497,7 +497,7 @@ class TaskDetails:
 	def update_task_details(self,widget=None):
 		if self.task_name and self.task_serial:
 			task_data=self.get_task_details()
-			self.scheduler_client.write_tasks(task_data,self.task_type)
+			return self.scheduler_client.write_tasks(task_data,self.task_type)
 	#def update_task_details
 
 	def get_task_details(self,widget=None,task_name=None,task_serial=None,task_cmd=None,task_type=None):
@@ -766,9 +766,11 @@ class TaskScheduler:
 		parms=w_parms.get_text()
 		cmd=self.scheduler_client.get_command_cmd(cmd_desc)
 		if w_chk.get_active():
-				parms=parms+' '+w_file.get_uri().replace('file://','')
-		self.scheduler_client.write_custom_task(name,cmd,parms)	
-		self._show_info(_("Task saved"))
+			parms=parms+' '+w_file.get_uri().replace('file://','')
+		if self.scheduler_client.write_custom_task(name,cmd,parms):
+			self._show_info(_("Task saved"))
+		else:
+			self._show_info(_("Permission denied"))
 	#def _add_custom_task
 
 	def _signin(self,user=None,pwd=None,server=None,data=None):
@@ -853,20 +855,10 @@ class TaskScheduler:
 		cmd=task_data[0][task_data[0].find("<b>")+3:task_data[0].find("</b>")]
 		if cmd in self.orig_cmd.keys():
 			task_cmd=self.orig_cmd[cmd]
-		else:
-			print("*******")
-			print(cmd)
-			print(self.orig_cmd)
-			print("*******")
 
 		name=task_data[1][task_data[1].find("<i>")+3:task_data[1].find("</i>")]
 		if name in self.orig_tasks.keys():
 			task_name=self.orig_tasks[name]
-		else:
-			print("*******")
-			print(name)
-			print(self.orig_tasks)
-			print("*******")
 
 		task_serial=model[data][1]
 		if self.btn_remote_tasks.get_active():
@@ -903,10 +895,13 @@ class TaskScheduler:
 		taskFilter='local'
 		self._debug("Writing task info...")
 		if self.chk_remote.get_active():
-			self.scheduler_client.write_tasks(task,'remote')
+			status=self.scheduler_client.write_tasks(task,'remote')
 		if self.chk_local.get_active():
-			self.scheduler_client.write_tasks(task,'local')
-		self._show_info(_("Task saved"))
+			status=self.scheduler_client.write_tasks(task,'local')
+		if status:
+			self._show_info(_("Task saved"))
+		else:
+			self._show_info(_("Permission denied"))
 		return()
 	#def save_task_details
 
@@ -985,9 +980,12 @@ class TaskScheduler:
 	
 	def update_task(self,widget,data=None):
 		self._debug("Updating task")
-		self.task_details_grid.update_task_details()
-		self._show_info(_('Task updated'))
-		self._reload_grid()
+		if self.task_details_grid.update_task_details():
+			self._show_info(_('Task updated'))
+			self._reload_grid()
+		else:
+			self._show_info(_('Permission denied'))
+		
 	#def update_task
 
 	def add_task_clicked(self,widget,event):
@@ -1027,6 +1025,7 @@ class TaskScheduler:
 
 	def manage_remove_responses(self,widget,response,model,task_name,task_serial,task_cmd,task_type,data):
 		if response==Gtk.ResponseType.OK:
+			self.inf_question.hide()
 			if task_name in self.orig_tasks.keys():
 				name=self.orig_tasks[task_name]
 			else:
@@ -1035,10 +1034,11 @@ class TaskScheduler:
 				cmd=self.orig_cmd[task_cmd]
 			else:
 				cmd=task_cmd
-			self.scheduler_client.remove_task(name,task_serial,cmd,task_type)
-			self.populate_tasks_tv(task_type)
-			self.tasks_tv.set_cursor(0)
-		self.inf_question.hide()
+			if self.scheduler_client.remove_task(name,task_serial,cmd,task_type):
+				self.populate_tasks_tv(task_type)
+				self.tasks_tv.set_cursor(0)
+			else:
+				self._show_info(_("Permission denied"))
 		for widget in self.main_box.get_children():
 			widget.set_sensitive(True)
 	#def manage_remove_responses

@@ -14,7 +14,7 @@ import ssl
 
 class TaskScheduler():
 	def __init__(self):
-		self.dbg=0
+		self.dbg=1
 		self.credentials=["",""]
 		self.n4dserver=None
 		self.n4dclient=self._n4d_connect('localhost')
@@ -122,7 +122,10 @@ class TaskScheduler():
 	def write_custom_task(self,cmd_name,cmd,parms):
 		n4d_server=self.n4dserver
 		result=n4d_server.write_custom_task(self.credentials,"SchedulerServer",cmd_name,cmd,parms)
-		return (result['status'])
+		if type(result)==type(''):
+			return (False)
+		else:
+			return (result['status'])
 	#def write_custom_task
 
 	def _read_tasks_file(self,wrkfile):
@@ -138,13 +141,16 @@ class TaskScheduler():
 	#def _read_tasks_file
 
 	def write_tasks(self,tasks,task_type):
+		status=True
 		self._debug("Sending task info to %s server"%task_type)
 		if task_type=='remote':
 			tasks=self.n4dserver.write_tasks(self.credentials,"SchedulerServer",task_type,tasks)
 		else:
 			tasks=self.n4dclient.write_tasks(self.credentials,"SchedulerServer",task_type,tasks)
 		self._debug(tasks)
-		return True
+		if type(tasks)==type(''):
+			status=False
+		return status
 	#def write_tasks
 
 	def remove_task(self,task_name,task_serial,task_cmd,task_type):
