@@ -1,3 +1,9 @@
+taskscheduler (0.3.4.1) xenial; urgency=medium
+
+  * Fix n4d-client when http_proxy is not set
+
+ -- Juanma Navarro Mañez <juanma1980@gmail.com>  Tue, 28 Nov 2017 12:10:23 +0100
+
 taskscheduler (0.3.4) xenial; urgency=medium
 
   * Fix permission denied on remove task
