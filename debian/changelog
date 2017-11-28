@@ -1,3 +1,27 @@
+taskscheduler (0.3.4) xenial; urgency=medium
+
+  * Fix permission denied on remove task
+
+ -- Juanma Navarro Mañez <juanma1980@gmail.com>  Tue, 28 Nov 2017 11:58:10 +0100
+
+taskscheduler (0.3.3) xenial; urgency=medium
+
+  * Changes due to n4dgtklogin new api
+
+ -- Juanma Navarro Mañez <juanma1980@gmail.com>  Mon, 27 Nov 2017 17:38:18 +0100
+
+taskscheduler (0.3.2.3) xenial; urgency=medium
+
+  * add env var http_proxy when needed 
+
+ -- Juanma Navarro Mañez <juanma1980@gmail.com>  Mon, 27 Nov 2017 09:09:39 +0100
+
+taskscheduler (0.3.2.2) xenial; urgency=medium
+
+  * Add string parameter for custom tasks
+
+ -- Juanma Navarro Mañez <juanma1980@gmail.com>  Fri, 24 Nov 2017 08:57:19 +0100
+
 taskscheduler (0.3.2.1) xenial; urgency=medium
 
   * Fixed control
