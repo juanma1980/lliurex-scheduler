@@ -32,7 +32,7 @@ GLADE_FILE=BASE_DIR+"rsrc/taskScheduler.ui"
 REMOVE_ICON=BASE_DIR+"rsrc/trash.svg"
 LOCK_PATH="/var/run/taskScheduler.lock"
 WIDGET_MARGIN=6
-DBG=0
+DBG=1
 class TaskDetails:
 	
 	def __init__(self,scheduler):
@@ -561,7 +561,7 @@ class TaskScheduler:
 		self.window=builder.get_object("main_window")
 		self.main_box=builder.get_object("main_box")
 		self.login=N4dGtkLogin()
-		self.login.set_allowed_groups(['adm'])
+		self.login.set_allowed_groups(['adm','teachers'])
 		desc=_("Welcome to the Task Scheduler for Lliurex.\nFrom here you can:\n<sub>* Schedule tasks in the local pc\n* Distribute tasks among all the pcs in the network\n*Show scheduled tasks</sub>")
 		self.login.set_info_text("<span foreground='black'>Task Scheduler</span>",_("Task Scheduler"),"<span foreground='black'>"+desc+"</span>\n")
 		self.login.set_info_background(image='taskscheduler',cover=True)
@@ -835,11 +835,13 @@ class TaskScheduler:
 	#def match_tasks
 
 	def task_clicked(self,treeview,event=None):
+		self._debug("task clicked %s"%event)
 		self.task_details_grid.clear_screen()
 		sw_show=True
 		if event!=None:
 			try:
 				row=self.tasks_tv.get_path_at_pos(int(event.x),int(event.y))
+				print(row)
 			except:
 				return
 			if not row:
@@ -878,6 +880,10 @@ class TaskScheduler:
 				widget.set_sensitive(False)
 			self.inf_question.set_sensitive(True)
 			self.inf_question.show_all()
+			try:
+				self.inf_question.disconnect_by_func(self.manage_remove_responses)
+			except:
+				pass
 			self.inf_question.connect('response',self.manage_remove_responses,model,task_name,task_serial,task_cmd,task_type,data)
 	#def task_clicked			
 
@@ -928,9 +934,7 @@ class TaskScheduler:
 		self.tasks_tv.set_model(self.tasks_store_filter)
 		self.tasks_tv.set_cursor(0)
 		if self.stack.get_visible_child_name!='tasks':
-#			self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_RIGHT)
 			self.stack.set_visible_child_name("tasks")
-#		self.cancel_add_clicked(widget,task_type)
 	#def view_tasks_clicked	
 
 	def load_add_task_details(self):
@@ -958,6 +962,7 @@ class TaskScheduler:
 			if name not in names:
 				names.append(name)
 				self.orig_tasks[_(name)]=name
+				print("PROCESS %s"%name)
 				self.cmb_task_names.append_text(_(name))
 		
 		self.cmb_task_names.connect('changed',self.load_add_task_details_cmds,tasks)
@@ -971,6 +976,7 @@ class TaskScheduler:
 		task_name=self.cmb_task_names.get_active_text()
 		if task_name:
 			orig_name=self.orig_tasks[task_name]
+			print(tasks)
 			for action in tasks[orig_name].keys():
 				if action not in actions:
 					self.orig_cmd[_(action)]=action
@@ -1025,6 +1031,7 @@ class TaskScheduler:
 	#def _reload_grid
 
 	def manage_remove_responses(self,widget,response,model,task_name,task_serial,task_cmd,task_type,data):
+		self._debug("Removing task %s - %s - %s"%(task_name,task_serial,task_cmd))
 		if response==Gtk.ResponseType.OK:
 			self.inf_question.hide()
 			if task_name in self.orig_tasks.keys():
