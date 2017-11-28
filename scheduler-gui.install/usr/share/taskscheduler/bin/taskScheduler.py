@@ -497,7 +497,7 @@ class TaskDetails:
 	def update_task_details(self,widget=None):
 		if self.task_name and self.task_serial:
 			task_data=self.get_task_details()
-			self.scheduler_client.write_tasks(task_data,self.task_type)
+			return self.scheduler_client.write_tasks(task_data,self.task_type)
 	#def update_task_details
 
 	def get_task_details(self,widget=None,task_name=None,task_serial=None,task_cmd=None,task_type=None):
@@ -528,6 +528,8 @@ class TaskScheduler:
 			self.flavour="client"
 		self.last_task_type='remote'
 		self.ldm_helper='/usr/sbin/sched-ldm.sh'
+		self.orig_tasks={}
+		self.orig_cmd={}
 			
 	#def __init__		
 
@@ -559,12 +561,12 @@ class TaskScheduler:
 		self.window=builder.get_object("main_window")
 		self.main_box=builder.get_object("main_box")
 		self.login=N4dGtkLogin()
+		self.login.set_allowed_groups(['adm'])
 		desc=_("Welcome to the Task Scheduler for Lliurex.\nFrom here you can:\n<sub>* Schedule tasks in the local pc\n* Distribute tasks among all the pcs in the network\n*Show scheduled tasks</sub>")
-		self.login.set_info_text("<span foreground='black'>Task Scheduler</span>",_("Task Scheduler"),"<span foreground='black'>"+desc+"</span>")
-#		self.login.set_info_background(image='/usr/share/backgrounds/lliurex/lliurex-blueprint.png',cover=True)
+		self.login.set_info_text("<span foreground='black'>Task Scheduler</span>",_("Task Scheduler"),"<span foreground='black'>"+desc+"</span>\n")
 		self.login.set_info_background(image='taskscheduler',cover=True)
 		self.login.after_validation_goto(self._signin)
-		self.loginBox=self.login.render_form()
+		self.login.hide_server_entry()
 		self.inf_message=Gtk.InfoBar()
 		self.inf_message.set_show_close_button(True)
 		self.lbl_message=Gtk.Label("")
@@ -616,7 +618,8 @@ class TaskScheduler:
 		self.stack.add_titled(self.tasks_box, "tasks", "Tasks")
 		self.stack.add_titled(self.manage_box, "manage", "Manage")
 		self.stack.add_titled(self.add_task_box, "add", "Add Task")
-		self.stack.add_titled(self.loginBox, "login", "Login")
+#		self.stack.add_titled(self.loginBox, "login", "Login")
+		self.stack.add_titled(self.login, "login", "Login")
 		#Packing
 		self.main_box.pack_start(self.stack,True,False,5)
 		self.toolbar.props.no_show_all=True
@@ -640,6 +643,7 @@ class TaskScheduler:
 		self.tasks_tv=builder.get_object("tasks_treeview")
 		self.task_details_grid=TaskDetails(self.scheduler_client)
 		td_grid=self.task_details_grid.render_form(builder.get_object("task_details_grid"))
+		self.task_details_grid.btn_apply.set_sensitive(True)
 		self.task_details_grid.btn_apply.connect("clicked",self.update_task)
 		self.tasks_store=Gtk.ListStore(str,str,str,GdkPixbuf.Pixbuf,str)
 		self.tasks_store_filter=self.tasks_store.filter_new()
@@ -763,9 +767,11 @@ class TaskScheduler:
 		parms=w_parms.get_text()
 		cmd=self.scheduler_client.get_command_cmd(cmd_desc)
 		if w_chk.get_active():
-				parms=parms+' '+w_file.get_uri().replace('file://','')
-		self.scheduler_client.write_custom_task(name,cmd,parms)	
-		self._show_info(_("Task saved"))
+			parms=parms+' '+w_file.get_uri().replace('file://','')
+		if self.scheduler_client.write_custom_task(name,cmd,parms):
+			self._show_info(_("Task saved"))
+		else:
+			self._show_info(_("Permission denied"))
 	#def _add_custom_task
 
 	def _signin(self,user=None,pwd=None,server=None,data=None):
@@ -781,10 +787,10 @@ class TaskScheduler:
 
 	def populate_tasks_tv(self,task_type):
 		self._debug("Populating task list")
+		self.task_details_grid.btn_apply.set_sensitive(False)
 		self.scheduled_tasks={}
 		tasks=[]
-		self.orig_tasks={}
-		self.orig_cmd={}
+		sw_tasks=False
 		tasks=self.scheduler_client.get_scheduled_tasks(task_type)
 		self.tasks_store.clear()
 		if type(tasks)==type([]):	
@@ -792,6 +798,7 @@ class TaskScheduler:
 				for task_name,task_serial in task.items():
 					self.scheduled_tasks[task_name]=task_serial
 					for serial,task in task_serial.items():
+						sw_tasks=True
 						parser=cronParser()
 						parsed_calendar=''
 						parsed_calendar=parser.parse_taskData(task)
@@ -803,6 +810,8 @@ class TaskScheduler:
 									"<span font='Roboto' size='small'><i>"+\
 									_(task_name)+"</i></span>",serial,"<span font='Roboto' size='small'>"+\
 									parsed_calendar+"</span>",self.remove_icon,'oooo'))
+		if sw_tasks:
+			self.task_details_grid.btn_apply.set_sensitive(True)
 	#def populate_tasks_tv
 	
 	def filter_tasklist(self,model,iterr,data):
@@ -833,6 +842,8 @@ class TaskScheduler:
 				row=self.tasks_tv.get_path_at_pos(int(event.x),int(event.y))
 			except:
 				return
+			if not row:
+				return
 			col=row[1]
 			if col==self.col_remove:
 				sw_show=False
@@ -842,8 +853,14 @@ class TaskScheduler:
 			return
 		task_data=model[data][0].split('\n')
 		task_serial=model[data][1].split('\n')[0]
-		task_cmd=task_data[0][task_data[0].find("<b>")+3:task_data[0].find("</b>")]
-		task_name=task_data[1][task_data[1].find("<i>")+3:task_data[1].find("</i>")]
+		cmd=task_data[0][task_data[0].find("<b>")+3:task_data[0].find("</b>")]
+		if cmd in self.orig_cmd.keys():
+			task_cmd=self.orig_cmd[cmd]
+
+		name=task_data[1][task_data[1].find("<i>")+3:task_data[1].find("</i>")]
+		if name in self.orig_tasks.keys():
+			task_name=self.orig_tasks[name]
+
 		task_serial=model[data][1]
 		if self.btn_remote_tasks.get_active():
 			task_type='remote'
@@ -879,10 +896,13 @@ class TaskScheduler:
 		taskFilter='local'
 		self._debug("Writing task info...")
 		if self.chk_remote.get_active():
-			self.scheduler_client.write_tasks(task,'remote')
+			status=self.scheduler_client.write_tasks(task,'remote')
 		if self.chk_local.get_active():
-			self.scheduler_client.write_tasks(task,'local')
-		self._show_info(_("Task saved"))
+			status=self.scheduler_client.write_tasks(task,'local')
+		if status:
+			self._show_info(_("Task saved"))
+		else:
+			self._show_info(_("Permission denied"))
 		return()
 	#def save_task_details
 
@@ -961,9 +981,12 @@ class TaskScheduler:
 	
 	def update_task(self,widget,data=None):
 		self._debug("Updating task")
-		self.task_details_grid.update_task_details()
-		self._show_info(_('Task updated'))
-		self._reload_grid()
+		if self.task_details_grid.update_task_details():
+			self._show_info(_('Task updated'))
+			self._reload_grid()
+		else:
+			self._show_info(_('Permission denied'))
+		
 	#def update_task
 
 	def add_task_clicked(self,widget,event):
@@ -1003,12 +1026,20 @@ class TaskScheduler:
 
 	def manage_remove_responses(self,widget,response,model,task_name,task_serial,task_cmd,task_type,data):
 		if response==Gtk.ResponseType.OK:
-			name=self.orig_tasks[task_name]
-			cmd=self.orig_cmd[task_cmd]
-			self.scheduler_client.remove_task(name,task_serial,cmd,task_type)
-			self.populate_tasks_tv(task_type)
-			self.tasks_tv.set_cursor(0)
-		self.inf_question.hide()
+			self.inf_question.hide()
+			if task_name in self.orig_tasks.keys():
+				name=self.orig_tasks[task_name]
+			else:
+				name=task_name
+			if task_cmd in self.orig_cmd.keys():
+				cmd=self.orig_cmd[task_cmd]
+			else:
+				cmd=task_cmd
+			if self.scheduler_client.remove_task(name,task_serial,cmd,task_type):
+				self.populate_tasks_tv(task_type)
+				self.tasks_tv.set_cursor(0)
+			else:
+				self._show_info(_("Permission denied"))
 		for widget in self.main_box.get_children():
 			widget.set_sensitive(True)
 	#def manage_remove_responses
