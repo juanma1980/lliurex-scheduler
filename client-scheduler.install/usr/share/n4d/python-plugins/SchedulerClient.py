@@ -81,9 +81,10 @@ class SchedulerClient():
 					data.write('PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin\n')
 					data.write('DISPLAY=:0\n')
 					data.write('XAUTHORITY=/var/run/lightdm/root/:0\n')
-					https_proxy=os.environ['https_proxy']
-					if https_proxy:
+					if 'https_proxy' in os.environ.keys():
+						https_proxy=os.environ['https_proxy']
 						data.write('https_proxy=%s\n'%https_proxy)
+					if 'http_proxy' in os.environ.keys():
 					http_proxy=os.environ['http_proxy']
 					if http_proxy:
 						data.write('http_proxy=%s\n'%http_proxy)
