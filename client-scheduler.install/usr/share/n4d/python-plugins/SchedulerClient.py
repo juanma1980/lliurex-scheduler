@@ -85,8 +85,7 @@ class SchedulerClient():
 						https_proxy=os.environ['https_proxy']
 						data.write('https_proxy=%s\n'%https_proxy)
 					if 'http_proxy' in os.environ.keys():
-					http_proxy=os.environ['http_proxy']
-					if http_proxy:
+						http_proxy=os.environ['http_proxy']
 						data.write('http_proxy=%s\n'%http_proxy)
 					for cron_line in cron_array:
 						data.write(cron_line+"\n")
