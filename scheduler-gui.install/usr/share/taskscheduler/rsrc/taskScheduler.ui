@@ -3,18 +3,25 @@
 <interface>
   <requires lib="gtk+" version="3.12"/>
   <object class="GtkBox" id="add_task_box">
+    <property name="width_request">800</property>
+    <property name="height_request">600</property>
     <property name="visible">True</property>
     <property name="can_focus">False</property>
+    <property name="halign">start</property>
+    <property name="valign">start</property>
     <property name="margin_left">5</property>
+    <property name="hexpand">False</property>
+    <property name="vexpand">False</property>
     <property name="orientation">vertical</property>
     <property name="spacing">5</property>
     <child>
       <object class="GtkBox" id="box9">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="valign">start</property>
         <property name="margin_left">5</property>
         <property name="margin_right">5</property>
-        <property name="vexpand">True</property>
+        <property name="vexpand">False</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox" id="box11">
@@ -30,6 +37,8 @@
                 <property name="can_focus">False</property>
                 <property name="tooltip_text" translatable="yes">Select a group</property>
                 <property name="halign">start</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
                 <property name="label" translatable="yes">Task Group</property>
               </object>
               <packing>
@@ -82,102 +91,15 @@
           </packing>
         </child>
         <child>
-          <object class="GtkBox" id="box1">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="halign">start</property>
-            <property name="hexpand">True</property>
-            <property name="spacing">5</property>
-            <property name="homogeneous">True</property>
-            <child>
-              <object class="GtkCheckButton" id="swt_remote">
-                <property name="label" translatable="yes">Remote task</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">False</property>
-                <property name="tooltip_text" translatable="yes">Schedule a task for all the clients</property>
-                <property name="xalign">0</property>
-                <property name="draw_indicator">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkCheckButton" id="swt_local">
-                <property name="label" translatable="yes">Local task</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">False</property>
-                <property name="tooltip_text" translatable="yes">Schedule a task in this computer</property>
-                <property name="halign">end</property>
-                <property name="hexpand">True</property>
-                <property name="xalign">0</property>
-                <property name="draw_indicator">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="padding">5</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSeparator" id="separator3">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_left">5</property>
-            <property name="margin_right">5</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="label1">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="xpad">5</property>
-            <property name="ypad">5</property>
-            <property name="label" translatable="yes">Task details</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkSeparator" id="separator2">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="valign">start</property>
-            <property name="vexpand">True</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">4</property>
-          </packing>
+          <placeholder/>
         </child>
         <child>
           <object class="GtkGrid" id="add_task_grid">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="halign">center</property>
             <property name="valign">start</property>
-            <property name="vexpand">True</property>
+            <property name="hexpand">False</property>
+            <property name="vexpand">False</property>
             <property name="column_spacing">12</property>
             <child>
               <placeholder/>
@@ -224,7 +146,9 @@
       <object class="GtkBox" id="box6">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="valign">end</property>
         <property name="margin_right">5</property>
+        <property name="vexpand">False</property>
         <property name="spacing">5</property>
         <child>
           <object class="GtkButton" id="btn_back_add">
@@ -300,10 +224,11 @@
     </child>
   </object>
   <object class="GtkWindow" id="main_window">
+    <property name="width_request">900</property>
+    <property name="height_request">550</property>
     <property name="can_focus">False</property>
-    <property name="opacity">0.98039215686274506</property>
+    <property name="opacity">0.93999999999999995</property>
     <property name="valign">start</property>
-    <property name="hexpand">True</property>
     <property name="resizable">False</property>
     <property name="window_position">center</property>
     <child>
@@ -314,6 +239,7 @@
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox" id="main_box">
+            <property name="height_request">550</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="hexpand">True</property>
@@ -372,38 +298,22 @@
                     <property name="halign">end</property>
                     <property name="hexpand">False</property>
                     <child>
-                      <object class="GtkBox" id="box_select_tasks">
+                      <object class="GtkBox" id="nav_box">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">center</property>
                         <property name="homogeneous">True</property>
                         <child>
-                          <object class="GtkToggleButton" id="btn_remote_tasks">
-                            <property name="label" translatable="yes">Client tasks</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Show tasks scheduled for the clients</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
+                          <placeholder/>
                         </child>
                         <child>
-                          <object class="GtkToggleButton" id="btn_local_tasks">
-                            <property name="label" translatable="yes">Local tasks</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Show tasks scheduled for this computer</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
                         </child>
                       </object>
                     </child>
@@ -424,6 +334,7 @@
                         <property name="can_focus">True</property>
                         <property name="tooltip_text" translatable="yes">Search a task</property>
                         <property name="halign">end</property>
+                        <property name="margin_left">12</property>
                         <property name="hexpand">True</property>
                         <property name="primary_icon_name">edit-find-symbolic</property>
                         <property name="primary_icon_activatable">False</property>
@@ -454,9 +365,12 @@
                 <property name="position">1</property>
               </packing>
             </child>
+            <child>
+              <placeholder/>
+            </child>
           </object>
           <packing>
-            <property name="expand">False</property>
+            <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">1</property>
           </packing>
@@ -653,6 +567,7 @@ Put a descriptive task name, select the command and set the required parameters 
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="hexpand">True</property>
+    <property name="vexpand">True</property>
     <property name="orientation">vertical</property>
     <child>
       <object class="GtkBox" id="tasks_info_box">
@@ -660,6 +575,8 @@ Put a descriptive task name, select the command and set the required parameters 
         <property name="can_focus">False</property>
         <property name="margin_left">15</property>
         <property name="margin_right">15</property>
+        <property name="hexpand">True</property>
+        <property name="vexpand">True</property>
         <property name="orientation">vertical</property>
         <property name="baseline_position">top</property>
         <child>
@@ -667,12 +584,14 @@ Put a descriptive task name, select the command and set the required parameters 
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="hexpand">True</property>
+            <property name="vexpand">True</property>
             <child>
               <object class="GtkScrolledWindow" id="tasks_scrolledwindow">
                 <property name="height_request">272</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
                 <property name="shadow_type">in</property>
                 <property name="min_content_width">3</property>
                 <child>
@@ -680,6 +599,7 @@ Put a descriptive task name, select the command and set the required parameters 
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="hexpand">True</property>
+                    <property name="vexpand">True</property>
                     <property name="headers_clickable">False</property>
                     <property name="search_column">9</property>
                     <property name="hover_expand">True</property>
@@ -706,61 +626,20 @@ Put a descriptive task name, select the command and set the required parameters 
       </packing>
     </child>
     <child>
-      <object class="GtkBox" id="task_detail_box">
+      <object class="GtkButton" id="btn_exit">
+        <property name="label">gtk-close</property>
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="margin_left">15</property>
-        <property name="margin_right">15</property>
-        <property name="margin_top">20</property>
-        <property name="margin_bottom">10</property>
-        <property name="hexpand">True</property>
-        <property name="vexpand">True</property>
-        <property name="orientation">vertical</property>
-        <child>
-          <object class="GtkGrid" id="task_details_grid">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="halign">center</property>
-            <property name="margin_top">5</property>
-            <property name="hexpand">True</property>
-            <property name="column_spacing">12</property>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
+        <property name="can_focus">True</property>
+        <property name="receives_default">True</property>
+        <property name="halign">end</property>
+        <property name="margin_right">6</property>
+        <property name="margin_top">6</property>
+        <property name="margin_bottom">6</property>
+        <property name="hexpand">False</property>
+        <property name="use_stock">True</property>
       </object>
       <packing>
-        <property name="expand">True</property>
+        <property name="expand">False</property>
         <property name="fill">True</property>
         <property name="position">1</property>
       </packing>
