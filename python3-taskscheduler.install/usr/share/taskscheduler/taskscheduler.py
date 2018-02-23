@@ -14,7 +14,7 @@ import ssl
 
 class TaskScheduler():
 	def __init__(self):
-		self.dbg=1
+		self.dbg=0
 		self.credentials=["",""]
 		self.n4dserver=None
 		self.n4dclient=self._n4d_connect('localhost')
@@ -48,27 +48,38 @@ class TaskScheduler():
 		return tasks
 	#def get_available_tasks
 
-	def get_scheduled_tasks(self,task_type):
-		task_list=[]
-		self._debug("Retrieving %s task list"%task_type)
-		if task_type=='remote' and self.n4dserver:
-			result=self.n4dserver.get_tasks("","SchedulerServer",task_type)
-		elif task_type=='local':
-			result=self.n4dclient.get_tasks("","SchedulerServer",task_type)
+	def get_scheduled_tasks(self,sw_remote):
+		tasks={}
+		self._debug("Retrieving task list remote=%s"%sw_remote)
+		if self.n4dserver:
+			result=self.n4dserver.get_remote_tasks("","SchedulerServer")['data']
+			if type(result)==type({}):
+				tasks=result.copy()
+#		result=self.n4dclient.get_tasks("","SchedulerServer")['data']
+		result=self.n4dclient.get_local_tasks("","SchedulerServer")['data']
 		if type(result)==type({}):
-			task_list=result['data']
-		return task_list
+			if tasks:
+				#Merge values
+				for key,data in result.items():
+					if key in tasks.keys():
+						tasks[key].update(data)
+					else:
+						tasks[key]=data
+
+			else:
+				tasks.update(result.copy())
+		return tasks
 	#def get_scheduled_tasks
 
-	def get_task_description(self,task_cmd):
-		desc=task_cmd
+	def get_task_description(self,i18n_desc):
+		desc=i18n_desc
 		sw_found=False
-		self._debug("Getting desc for %s"%task_cmd)
+		self._debug("Getting desc for %s"%i18n_desc)
 		tasks=self.get_available_tasks()
 		try:
 			for task_desc,task_data in tasks.items():
 				for action,cmd in task_data.items():
-					if cmd==task_cmd:
+					if cmd==i18n_desc:
 						desc=action
 						sw_found=True
 						break
@@ -80,21 +91,19 @@ class TaskScheduler():
 		return desc
 	#def get_task_description
 
-	def get_task_command(self,task_description):
-		cmd=task_description
-		sw_found=False
-		self._debug("Getting cmd for %s"%task_description)
+	def get_task_command(self,i18n_cmd):
+		cmd=i18n_cmd
+		self._debug("Getting cmd for %s"%i18n_cmd)
 		tasks=self.get_available_tasks()
 		for task_desc,task_data in tasks.items():
-			if task_description in task_data.keys():
-				cmd=task_data[task_description]
-				sw_found=True
+			if task_desc in task_data.keys():
+				cmd=task_data[i18n_cmd]
 				break
 		return cmd
 	#def get_task_command
 
-	def _get_wrkfiles(self,task_type=None):
-		if task_type=='available':
+	def _get_wrkfiles(self,sw_remote=None):
+		if sw_remote=='available':
 			wrkdir=self.tasks_dir
 		else:
 			wrkdir=self.local_tasks_dir
@@ -105,6 +114,12 @@ class TaskScheduler():
 				wrkfiles.append(wrkdir+'/'+f)
 		return wrkfiles
 	#def _get_wrkfiles
+
+	def add_command(self,cmd_name,cmd):
+		if self.n4dserver:
+			self.n4dserver.add_command(self.credentials,"SchedulerServer",cmd_name,cmd)
+		else:
+			self.n4dclient.add_command(self.credentials,"SchedulerServer",cmd_name,cmd)
 
 	def get_commands(self):
 		cmds={}
@@ -146,25 +161,26 @@ class TaskScheduler():
 		return(tasks)
 	#def _read_tasks_file
 
-	def write_tasks(self,tasks,task_type):
+	def write_tasks(self,tasks,sw_remote):
 		status=False
-		self._debug("Sending task info to %s server"%task_type)
-		if task_type=='remote':
-			result=self.n4dserver.write_tasks(self.credentials,"SchedulerServer",task_type,tasks)
+		self._debug("Sending task info to %s server"%sw_remote)
+		if sw_remote=='remote':
+			result=self.n4dserver.write_tasks(self.credentials,"SchedulerServer",sw_remote,tasks)
 		else:
-			result=self.n4dclient.write_tasks(self.credentials,"SchedulerServer",task_type,tasks)
+			result=self.n4dclient.write_tasks(self.credentials,"SchedulerServer",sw_remote,tasks)
 		if type(result)==type({}):
 			status=result['status']
 		return status
 	#def write_tasks
 
-	def remove_task(self,task_name,task_serial,task_cmd,task_type):
+	def remove_task(self,task):
 		status=False
-		self._debug("Removing task from %s server"%task_type)
-		if task_type=='remote':
-			result=self.n4dserver.remove_task(self.credentials,"SchedulerServer",task_type,task_name,task_serial,task_cmd)
+		sw_remote=False
+		self._debug("Removing task %s"%task)
+		if task['spread']:
+			result=self.n4dserver.remove_task(self.credentials,"SchedulerServer",task)
 		else:
-			result=self.n4dclient.remove_task(self.credentials,"SchedulerServer",task_type,task_name,task_serial,task_cmd)
+			result=self.n4dclient.remove_task(self.credentials,"SchedulerServer",task)
 		if type(result)==type({}):
 			status=result['status']
 		self._debug("Status %s"%status)
