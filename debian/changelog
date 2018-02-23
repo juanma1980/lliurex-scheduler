@@ -1,3 +1,23 @@
+taskscheduler (1.0) xenial; urgency=medium
+
+  * Refactorized
+  * Multiple GUI changes
+  * Some minor bugfix
+
+ -- lliurex <lliurex@localhost.localdomain>  Thu, 15 Feb 2018 13:24:39 +0100
+
+taskscheduler (0.3.4.3) xenial; urgency=medium
+
+  * Fix utf8 bug in n4d client 
+
+ -- lliurex <lliurex@localhost.localdomain>  Tue, 02 Jan 2018 10:54:38 +0100
+
+taskscheduler (0.3.4.2) xenial; urgency=medium
+
+  * Fix n4d-client when http_proxy is not set (now really)
+
+ -- Juanma Navarro Mañez <juanma1980@gmail.com>  Tue, 28 Nov 2017 12:15:00 +0100
+
 taskscheduler (0.3.4.1) xenial; urgency=medium
 
   * Fix n4d-client when http_proxy is not set
