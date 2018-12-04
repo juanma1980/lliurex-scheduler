@@ -17,6 +17,8 @@ class SchedulerClient():
 		self.cron_dir='/etc/cron.d'
 		self.count=0
 		self.dbg=0
+		self.holidays_shell="/usr/bin/check_holidays.py"
+		self.pidfile="/tmp/taskscheduler.pid"
 
 	def startup(self,options):
 		t=threading.Thread(target=self._main_thread)
@@ -25,7 +27,7 @@ class SchedulerClient():
 
 	def _debug(self,msg):
 		if self.dbg:
-			print(str(msg))
+			print("%s"%msg)
 
 	def _main_thread(self):
 		objects["VariablesManager"].register_trigger("SCHEDULED_TASKS","SchedulerClient",self.process_tasks)
@@ -61,17 +63,21 @@ class SchedulerClient():
 				if f.startswith(prefix):
 					os.remove(self.cron_dir+'/'+f)
 			#Create the cron files
-			task_names={}
 			for name in tasks.keys():
+				task_names={}
+				self._debug("Processing task: %s"%name)
 				for serial in tasks[name].keys():
+					self._debug("Item %s"%serial)
 					sw_pass=False
 					if 'autoremove' in tasks[name][serial]:
-						if type(tasks[name][serial]['m'])==type(int):
-							if tasks[name][serial]['m']<today.month:
+						if (tasks[name][serial]['mon'].isdigit()):
+							mon=int(tasks[name][serial]['mon'])
+							if mon<today.month:
 								sw_pass=True
 						if sw_pass==False:
-							if type(tasks[name][serial]['d'])==type(int):
-								if tasks[name][serial]['d']<today.day:
+							if (tasks[name][serial]['dom'].isdigit()):
+								dom=int(tasks[name][serial]['dom'])
+								if dom<today.day:
 									sw_pass=True
 					if sw_pass:
 						continue
@@ -79,16 +85,38 @@ class SchedulerClient():
 					fname=name.replace(' ','_')
 					task_names[fname]=tasks[name][serial].copy()
 					self._write_crontab_for_task(task_names,prefix)
+		#Launch refresh signal to gui
+		if os.path.isfile(self.pidfile):
+			with open(self.pidfile,'r') as p_file:
+				pid=p_file.read()
+				try:
+					os.kill(int(pid),signal.SIGUSR1)
+				except:
+					pass
 
 	#def process_tasks
 
 	def _write_crontab_for_task(self,ftask,prefix):
 		cron_array=[]
 		for task_name,task_data in ftask.iteritems():
-			self._debug("Writing data %s"%task_name)
+			self._debug("Writing data %s: %s"%(task_name,task_data))
 			fname=self.cron_dir+'/'+prefix+task_name.replace(' ','_')
-			cron_task=("%s %s %s %s %s root %s"%(task_data['m'],task_data['h'],task_data['dom'],\
-							task_data['mon'],task_data['dow'],u""+task_data['cmd']))
+			m=task_data['m']
+			h=task_data['h']
+			dom=task_data['dom']
+			mon=task_data['mon']
+			if '/' in m:
+				m=m.replace('0/','*/')
+			if '/' in h:
+				h=h.replace('0/','*/')
+			if '/' in dom:
+				dom=dom.replace('1/','*/')
+			if '/' in mon:
+				mon=mon.replace('1/','*/')
+			cron_task=("%s %s %s %s %s root %s"%(m,h,dom,mon,task_data['dow'],u""+task_data['cmd']))
+			if 'holidays' in task_data.keys():
+				if task_data['holidays']:
+					cron_task=("%s %s %s %s %s root %s && %s"%(m,h,dom,mon,task_data['dow'],self.holidays_shell,u""+task_data['cmd']))
 			cron_array.append(cron_task)
 			if task_data:
 				if os.path.isfile(fname):
